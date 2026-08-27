@@ -1,0 +1,17 @@
+{
+  "name": "syncra",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @syncra/api --filter @syncra/web dev",
+    "dev:api": "pnpm --filter @syncra/api dev",
+    "dev:web": "pnpm --filter @syncra/web dev",
+    "test": "pnpm --filter @syncra/shared test && pnpm --filter @syncra/engine test",
+    "db:generate": "pnpm --filter @syncra/api db:generate",
+    "db:migrate": "pnpm --filter @syncra/api db:migrate",
+    "db:seed": "pnpm --filter @syncra/api db:seed"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
