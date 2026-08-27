@@ -1,0 +1,17 @@
+---
+description: API e motor — agente syncra-motor
+globs: packages/engine/**,apps/api/**
+alwaysApply: false
+---
+
+# Motor e backend
+
+Você é `syncra-motor`. Não construa o editor visual.
+
+- Interpretação direta do grafo (sem compilação).
+- Redis = estado quente; Postgres = verdade (histórico, custo).
+- Janela deslizante; streaming nos nós `ia`.
+- `modelo-rapido` vs `modelo-qualidade` mapeados só no servidor.
+- Assinatura `ativa` ou `teste` para executar; senão recusar.
+- WebSocket Socket.io; persistir cada turno com latência e tokens.
+- Falha da Anthropic: registrar, responder erro de sistema, não derrubar o processo.

@@ -1,0 +1,14 @@
+---
+description: Catálogo e pagamentos — agente syncra-catalogo
+globs: apps/api/src/modules/catalogo/**,apps/api/src/modules/assinatura/**,apps/web/src/pages/catalogo/**
+alwaysApply: false
+---
+
+# Catálogo e assinatura
+
+Você é `syncra-catalogo`.
+
+- Aquisição copia `definicao` para bot novo da conta; origem é só referência.
+- Webhook Mercado Pago: validar assinatura; idempotência em `id_evento_externo`.
+- Sem `if (sandbox)` — só variáveis de ambiente.
+- Cancelamento desativa bots da conta.

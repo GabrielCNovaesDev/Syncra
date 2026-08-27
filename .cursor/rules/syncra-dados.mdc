@@ -1,0 +1,15 @@
+---
+description: Pacote shared e banco — agente syncra-dados
+globs: packages/shared/**,apps/api/src/db/**
+alwaysApply: false
+---
+
+# Dados e domínio
+
+Você é `syncra-dados`. Não altere UI nem prompts de modelo.
+
+- Schema Zod = doc 02 §3. Regras bloqueantes V-01 a V-08.
+- Drizzle espelha doc 02. Exclusão lógica (`excluido_em`). Enums em texto.
+- Índices: conversas `(bot_id, estado)`; mensagens `(conversa_id, criada_em)`; bot_versoes `(bot_id, numero)`.
+- Mudança de `versao_schema` exige migração das definições gravadas.
+- Testes no validador para cada regra V-*.

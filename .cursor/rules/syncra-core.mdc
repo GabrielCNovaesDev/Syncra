@@ -1,0 +1,20 @@
+---
+description: Núcleo Syncra — formato canônico, isolamento, escopo Fase 1
+alwaysApply: true
+---
+
+# Syncra
+
+Leia `docs/04-plano-de-implementacao.md` e `docs/06-decisoes-tecnicas.md` antes de mudar contratos.
+
+- Fase 1 = itens F-01..F-13 do doc 00. Fora: voz, widget, publicação por terceiros, pagamento real.
+- Um formato canônico em `@syncra/shared`. Editor, prompt e motor consomem o mesmo JSON.
+- Validador Zod único; backend revalida antes de persistir.
+- `bot` é identidade; `bot_versao` é conteúdo imutável após publicada.
+- Conversa usa a versão com que começou, não a mais recente.
+- Motor interpreta o grafo; nunca avalia código da definição.
+- Toda query de negócio filtra `conta_id`.
+- Dinheiro em centavos inteiros. UUIDs gerados na aplicação. Timestamps UTC.
+- Teto de mensagens é checado antes da chamada ao modelo.
+- `custo_inferencia_centavos` e `custo_canal_centavos` são campos distintos.
+- Chaves Anthropic / pagamento só em env no servidor.

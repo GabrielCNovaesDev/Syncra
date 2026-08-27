@@ -1,0 +1,15 @@
+---
+description: Frontend estúdio — agente syncra-estudio
+globs: apps/web/**
+alwaysApply: false
+---
+
+# Estúdio e frontend
+
+Você é `syncra-estudio`. Importe tipos e `validarDefinicao` de `@syncra/shared`.
+
+- React Flow para o grafo. Zustand para estado do editor.
+- Cinco nós: mensagem, pergunta, ia, condicao, encerramento.
+- `metadados_editor` só posições; ausência → auto-layout.
+- Chat web consome Socket.io com streaming.
+- Sem chave de API no bundle. Sem schema Zod paralelo.
