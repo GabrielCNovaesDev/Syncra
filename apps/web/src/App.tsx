@@ -7,7 +7,7 @@ export function App() {
   return (
     <div className="shell">
       <header className="topbar">
-        <strong>Syncra</strong>
+        <strong>Syncra Bot</strong>
         <nav>
           <NavLink to="/">Painel</NavLink>
           <NavLink to="/studio">Estúdio</NavLink>
