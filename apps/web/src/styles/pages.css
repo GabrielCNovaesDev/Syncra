@@ -322,7 +322,7 @@
 }
 .featured-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
 }
 .featured-card {
@@ -1245,6 +1245,7 @@
 }
 .wa-connected-head strong {
   font-size: 17px;
+  white-space: nowrap;
 }
 .wa-connected-head small {
   font-size: 11px;
@@ -1535,6 +1536,21 @@
   .wa-bind,
   .wa-ids {
     grid-template-columns: 1fr;
+  }
+  .wa-connected-main {
+    padding: 18px;
+  }
+  .wa-connected-head {
+    display: grid;
+    grid-template-columns: auto 1fr;
+  }
+  .wa-connected-head .status-pill {
+    order: -1;
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .phone-mock {
+    margin: 0 auto;
   }
   .switch-field {
     margin-bottom: 8px;

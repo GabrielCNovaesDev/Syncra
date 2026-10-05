@@ -12,46 +12,31 @@
   pointer-events: none;
   z-index: 0;
 }
-@keyframes drift {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(40px, 30px) scale(1.08);
-  }
-}
+/* Brilhos estáticos em gradiente: sem filter/blur animado, que pesa na rolagem. */
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.5;
-  animation: drift 16s ease-in-out infinite;
 }
 .blob-1 {
-  width: 520px;
-  height: 520px;
-  top: -160px;
-  left: -120px;
-  background: #6a4fd8;
+  width: 900px;
+  height: 900px;
+  top: -450px;
+  left: -380px;
+  background: radial-gradient(circle, #6a4fd84d, transparent 65%);
 }
 .blob-2 {
-  width: 420px;
-  height: 420px;
-  top: 120px;
-  right: -140px;
-  background: #1e8f6a;
-  opacity: 0.32;
-  animation-delay: -5s;
+  width: 760px;
+  height: 760px;
+  top: -120px;
+  right: -380px;
+  background: radial-gradient(circle, #1e8f6a33, transparent 65%);
 }
 .blob-3 {
-  width: 380px;
-  height: 380px;
-  top: 900px;
-  left: 30%;
-  background: #4a3a9c;
-  opacity: 0.3;
-  animation-delay: -9s;
+  width: 700px;
+  height: 700px;
+  top: 700px;
+  left: 20%;
+  background: radial-gradient(circle, #4a3a9c2e, transparent 65%);
 }
 .grid-fade {
   position: absolute;
@@ -92,6 +77,8 @@
 .login-form-side .brand {
   margin: 0;
   padding: 0;
+  /* Anula a regra antiga da sidebar recolhida (font-size: 0 abaixo de 850px). */
+  font-size: 22px;
 }
 .landing-nav nav {
   display: flex;
@@ -252,41 +239,65 @@
   inset: 0;
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
-.dl {
-  fill: none;
-  stroke: #8f7cd6;
-  stroke-width: 2;
-  stroke-dasharray: 300;
-  stroke-dashoffset: 300;
-  animation: draw-line 9s ease infinite;
-}
-.dl-2 {
-  animation-delay: 0.6s;
-}
-.dl-3 {
-  animation-delay: 1.2s;
-  stroke: #58d6b5;
-}
+/*
+ * Entrada roda uma vez com fill "backwards": antes do delay o elemento fica no
+ * estado inicial (invisível) e, ao terminar, volta ao estado base (visível).
+ * Os loops infinitos só mexem em posição/traço, nunca escondem nada.
+ */
 @keyframes draw-line {
-  0%,
-  12% {
-    stroke-dashoffset: 300;
+  from {
+    stroke-dashoffset: 1;
   }
-  30%,
-  88% {
+  to {
     stroke-dashoffset: 0;
   }
-  100% {
-    stroke-dashoffset: 300;
+}
+@keyframes flow {
+  to {
+    stroke-dashoffset: -1;
   }
+}
+@keyframes demo-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dl,
+.dl-flow {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.dl {
+  stroke: #6d5fa0;
+  stroke-width: 2;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: draw-line 0.7s ease calc(0.6s + var(--i) * 0.35s) backwards;
+}
+.dl-flow {
+  stroke: #c7b5ff;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 0.04 0.16;
+  animation:
+    demo-in 0.4s ease calc(1.3s + var(--i) * 0.35s) backwards,
+    flow 2.4s linear infinite;
 }
 .demo-node {
   position: absolute;
+  width: 30%;
+  height: 38px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 13px;
+  gap: 7px;
+  padding: 0 11px;
   border-radius: 10px;
   background: #252838;
   border: 1px solid #44475c;
@@ -295,77 +306,76 @@
   font-weight: 700;
   color: #e4e4ef;
   box-shadow: 0 12px 24px #0006;
-  animation: node-cycle 9s ease infinite;
+  animation: demo-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) calc(0.3s + var(--i) * 0.35s) backwards;
+}
+.demo-node span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .demo-node .icon {
   color: var(--c);
 }
-@keyframes node-cycle {
-  0% {
-    opacity: 0;
-    transform: translateY(10px) scale(0.9);
+/* Janela da demo estreita: nós compactos, sem ícone, para o texto caber. */
+.demo-window {
+  container-type: inline-size;
+}
+@container (max-width: 480px) {
+  .demo-node {
+    padding: 0 7px;
+    font-size: 10px;
   }
-  8%,
-  90% {
-    opacity: 1;
-    transform: none;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-6px);
+  .demo-node .icon {
+    display: none;
   }
 }
 .dn-1 {
-  top: 6%;
-  left: 6%;
+  top: 11%;
+  left: 4%;
 }
 .dn-2 {
-  top: 36%;
-  left: 40%;
-  animation-delay: 0.4s;
+  top: 44%;
+  left: 30%;
 }
 .dn-3 {
-  top: 7%;
-  right: 6%;
-  animation-delay: 1.4s;
+  top: 11%;
+  left: 66%;
 }
 .dn-4 {
-  top: 70%;
-  left: 30%;
-  animation-delay: 1s;
+  top: 75%;
+  left: 4%;
 }
 @keyframes cursor-move {
-  0% {
-    transform: translate(40px, 200px);
-  }
-  20% {
-    transform: translate(140px, 70px);
-  }
-  40% {
-    transform: translate(250px, 140px);
-  }
-  60% {
-    transform: translate(330px, 60px);
-  }
-  80% {
-    transform: translate(200px, 230px);
-  }
+  0%,
   100% {
-    transform: translate(40px, 200px);
+    left: 12%;
+    top: 30%;
+  }
+  25% {
+    left: 46%;
+    top: 58%;
+  }
+  50% {
+    left: 82%;
+    top: 26%;
+  }
+  75% {
+    left: 22%;
+    top: 86%;
   }
 }
 .demo-cursor {
   position: absolute;
-  top: 0;
-  left: 0;
-  animation: cursor-move 9s ease-in-out infinite;
+  left: 12%;
+  top: 30%;
+  animation: cursor-move 10s ease-in-out infinite;
   filter: drop-shadow(0 4px 6px #0008);
 }
 .demo-chat {
   position: absolute;
   right: 0;
   bottom: 0;
-  width: 250px;
+  width: min(250px, 48%);
   padding: 12px;
   border-radius: 16px;
   background: #0d1418;
@@ -392,7 +402,7 @@
   border-radius: 8px;
   font-size: 10.5px;
   line-height: 1.4;
-  animation: chat-cycle 9s ease infinite;
+  animation: demo-in 0.4s ease calc(1.6s + var(--i) * 0.7s) backwards;
 }
 .dc.in {
   align-self: flex-start;
@@ -405,29 +415,35 @@
 .dc .icon {
   color: #f6b963;
 }
-@keyframes chat-cycle {
+@keyframes dot-bounce {
   0%,
-  10% {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  16%,
-  90% {
-    opacity: 1;
-    transform: none;
-  }
+  60%,
   100% {
-    opacity: 0;
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
   }
 }
-.dc-2 {
-  animation-delay: 1.2s;
+.dc-typing {
+  display: flex;
+  gap: 3px;
+  padding: 8px 10px;
 }
-.dc-3 {
-  animation-delay: 2.4s;
+.dc-typing i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #8fb8a6;
+  animation: dot-bounce 1.1s ease-in-out infinite;
 }
-.dc-4 {
-  animation-delay: 3.4s;
+.dc-typing i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.dc-typing i:nth-child(3) {
+  animation-delay: 0.3s;
 }
 
 /* Segmentos (marquee) */
@@ -474,6 +490,7 @@
 
 /* Seções */
 .landing-section {
+  scroll-margin-top: 80px;
   max-width: 1200px;
   margin: 0 auto;
   padding: 70px 28px;
@@ -493,17 +510,6 @@
   color: #9799af;
   font-size: 14px;
   margin: 0;
-}
-.reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition:
-    opacity 0.7s cubic-bezier(0.2, 0.7, 0.3, 1),
-    transform 0.7s cubic-bezier(0.2, 0.7, 0.3, 1);
-}
-.reveal.in {
-  opacity: 1;
-  transform: none;
 }
 .steps-grid {
   display: grid;
@@ -559,10 +565,7 @@
 .feature-tile {
   padding: 28px;
   background: #151721;
-  transition:
-    opacity 0.7s cubic-bezier(0.2, 0.7, 0.3, 1),
-    transform 0.7s cubic-bezier(0.2, 0.7, 0.3, 1),
-    background 0.2s;
+  transition: background 0.2s;
 }
 .feature-tile:hover {
   background: #1b1d2b;
@@ -937,14 +940,19 @@
   .landing-section {
     padding: 50px 16px;
   }
+  /* No celular o chat desce para baixo da janela em vez de cobrir o mapa. */
   .hero-demo {
-    height: 360px;
+    height: auto;
   }
   .demo-window {
-    right: 20px;
+    position: relative;
+    inset: auto;
+    height: 250px;
   }
   .demo-chat {
-    width: 210px;
+    position: relative;
+    width: 74%;
+    margin: -22px 0 0 auto;
   }
   .features-landing {
     grid-template-columns: 1fr;

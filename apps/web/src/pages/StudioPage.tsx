@@ -341,6 +341,7 @@ function Estudio() {
                 connectionLineStyle={{ stroke: "#b49cff", strokeWidth: 2, strokeDasharray: "6 4" }}
                 fitView
                 fitViewOptions={{ padding: 0.2 }}
+                minZoom={0.2}
                 proOptions={{ hideAttribution: true }}
               >
                 <Background variant={BackgroundVariant.Dots} gap={20} size={1.4} color="#33364a" />

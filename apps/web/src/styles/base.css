@@ -28,6 +28,30 @@ body {
     padding: 0 8px;
   }
 }
+/* Sidebar recolhida (só ícones): mostra apenas a marca, centralizada. */
+@media (max-width: 850px) {
+  .sidebar .brand {
+    padding: 0;
+    justify-content: center;
+  }
+  .sidebar .brand > span:last-child {
+    display: none;
+  }
+  .sidebar-notice {
+    display: none;
+  }
+  .sidebar-profile .profile-button {
+    justify-content: center;
+  }
+  .sidebar-profile .profile-button > span:last-child {
+    display: none;
+  }
+  .nav-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+  }
+}
 .muted {
   color: #9799af;
   font-size: 13px;

@@ -8,16 +8,40 @@ import { useIntegracoesStore } from "./store/integracoes";
 import { iniciais, useSessaoStore } from "./store/sessao";
 
 // Páginas do app carregadas sob demanda: a landing não precisa do React Flow.
-const PainelPage = lazy(() => import("./pages/PainelPage").then((m) => ({ default: m.PainelPage })));
-const StudioPage = lazy(() => import("./pages/StudioPage").then((m) => ({ default: m.StudioPage })));
+const carregarPainel = () => import("./pages/PainelPage");
+const carregarStudio = () => import("./pages/StudioPage");
+const carregarMarketplace = () => import("./pages/MarketplacePage");
+const carregarIntegracoes = () => import("./pages/IntegracoesPage");
+
+const PainelPage = lazy(() => carregarPainel().then((m) => ({ default: m.PainelPage })));
+const StudioPage = lazy(() => carregarStudio().then((m) => ({ default: m.StudioPage })));
 const MarketplacePage = lazy(() =>
-  import("./pages/MarketplacePage").then((m) => ({ default: m.MarketplacePage })),
+  carregarMarketplace().then((m) => ({ default: m.MarketplacePage })),
 );
 const IntegracoesPage = lazy(() =>
-  import("./pages/IntegracoesPage").then((m) => ({ default: m.IntegracoesPage })),
+  carregarIntegracoes().then((m) => ({ default: m.IntegracoesPage })),
 );
 
+/** Baixa os chunks do app em segundo plano para a navegação não mostrar carregamento. */
+function usePreCarregarPaginas() {
+  useEffect(() => {
+    const precarregar = () => {
+      void carregarPainel();
+      void carregarStudio();
+      void carregarMarketplace();
+      void carregarIntegracoes();
+    };
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(precarregar, { timeout: 2500 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const t = globalThis.setTimeout(precarregar, 1200);
+    return () => globalThis.clearTimeout(t);
+  }, []);
+}
+
 export function App() {
+  usePreCarregarPaginas();
   return (
     <>
       <Routes>

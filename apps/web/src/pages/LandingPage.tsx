@@ -4,29 +4,18 @@ import { Icon, WhatsAppGlyph, type NomeIcone } from "../components/Icon";
 import { ITENS_MARKETPLACE, formatarPreco } from "../data/marketplace";
 import { useSessaoStore } from "../store/sessao";
 
-/** Revela elementos `.reveal` conforme entram na tela. */
-function useRevelarAoRolar() {
-  useEffect(() => {
-    const elementos = document.querySelectorAll<HTMLElement>(".reveal");
-    if (!("IntersectionObserver" in window)) {
-      elementos.forEach((el) => el.classList.add("in"));
-      return;
-    }
-    const observador = new IntersectionObserver(
-      (entradas) => {
-        for (const entrada of entradas) {
-          if (entrada.isIntersecting) {
-            entrada.target.classList.add("in");
-            observador.unobserve(entrada.target);
-          }
-        }
-      },
-      { threshold: 0.15 },
-    );
-    elementos.forEach((el) => observador.observe(el));
-    return () => observador.disconnect();
-  }, []);
-}
+const DEMO_NOS: { classe: string; icone: NomeIcone; texto: string; cor: string }[] = [
+  { classe: "dn-1", icone: "message", texto: "Boas-vindas", cor: "#59a9ff" },
+  { classe: "dn-2", icone: "help", texto: "Especialidade?", cor: "#a589ff" },
+  { classe: "dn-3", icone: "sparkles", texto: "Resposta IA", cor: "#f6b963" },
+  { classe: "dn-4", icone: "flag", texto: "Agendado", cor: "#f18c9a" },
+];
+
+const DEMO_LINHAS = [
+  "M19 23 C 19 40, 22 50, 30 50",
+  "M60 50 C 74 50, 81 38, 81 23",
+  "M45 56 C 45 70, 42 81, 34 81",
+];
 
 const RECURSOS: { icone: NomeIcone; titulo: string; texto: string }[] = [
   { icone: "workflow", titulo: "Editor visual", texto: "Arraste etapas, conecte caminhos e veja a conversa tomar forma." },
@@ -50,8 +39,13 @@ const SEGMENTOS: { icone: NomeIcone; nome: string }[] = [
 
 export function LandingPage() {
   const usuario = useSessaoStore((s) => s.usuario);
-  useRevelarAoRolar();
   const destino = usuario ? "/app" : "/entrar";
+
+  // Ao abrir a landing com âncora (ex.: /#recursos), rola até a seção.
+  useEffect(() => {
+    if (!window.location.hash) return;
+    document.getElementById(decodeURIComponent(window.location.hash.slice(1)))?.scrollIntoView();
+  }, []);
 
   return (
     <div className="landing">
@@ -140,23 +134,24 @@ export function LandingPage() {
               <span>estúdio · Recepção de Clínica</span>
             </div>
             <div className="demo-canvas">
-              <svg className="demo-lines" viewBox="0 0 420 300" preserveAspectRatio="none">
-                <path className="dl dl-1" d="M120 62 C 170 62, 170 140, 215 140" />
-                <path className="dl dl-2" d="M300 150 C 340 150, 330 230, 270 232" />
-                <path className="dl dl-3" d="M300 150 C 360 150, 380 60, 330 52" />
+              {/* Coordenadas em % do canvas, alinhadas às posições dos nós no CSS. */}
+              <svg className="demo-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+                {DEMO_LINHAS.map((d, i) => (
+                  <g key={d} style={{ "--i": i } as CSSProperties}>
+                    <path className="dl" d={d} pathLength={1} />
+                    <path className="dl-flow" d={d} pathLength={1} />
+                  </g>
+                ))}
               </svg>
-              <div className="demo-node dn-1" style={{ "--c": "#59a9ff" } as CSSProperties}>
-                <Icon name="message" size={12} /> Boas-vindas
-              </div>
-              <div className="demo-node dn-2" style={{ "--c": "#a589ff" } as CSSProperties}>
-                <Icon name="help" size={12} /> Qual especialidade?
-              </div>
-              <div className="demo-node dn-3" style={{ "--c": "#f6b963" } as CSSProperties}>
-                <Icon name="sparkles" size={12} /> Resposta com IA
-              </div>
-              <div className="demo-node dn-4" style={{ "--c": "#f18c9a" } as CSSProperties}>
-                <Icon name="flag" size={12} /> Agendado
-              </div>
+              {DEMO_NOS.map((no, i) => (
+                <div
+                  key={no.classe}
+                  className={`demo-node ${no.classe}`}
+                  style={{ "--c": no.cor, "--i": i } as CSSProperties}
+                >
+                  <Icon name={no.icone} size={12} /> <span>{no.texto}</span>
+                </div>
+              ))}
               <div className="demo-cursor">
                 <svg width="18" height="18" viewBox="0 0 24 24">
                   <path d="M4 3l16 8-7 2-3 7z" fill="#fff" stroke="#10111b" strokeWidth="1.5" />
@@ -168,17 +163,28 @@ export function LandingPage() {
             <div className="demo-chat-head">
               <WhatsAppGlyph size={14} /> Clínica Vida
             </div>
-            <div className="dc dc-1 in">Olá! Vou te ajudar a marcar sua consulta.</div>
-            <div className="dc dc-2 out">Quero um dermatologista</div>
-            <div className="dc dc-3 in">
+            <div className="dc in" style={{ "--i": 0 } as CSSProperties}>
+              Olá! Vou te ajudar a marcar sua consulta.
+            </div>
+            <div className="dc out" style={{ "--i": 1 } as CSSProperties}>
+              Quero um dermatologista
+            </div>
+            <div className="dc in" style={{ "--i": 2 } as CSSProperties}>
               <Icon name="sparkles" size={10} /> Temos horários na quinta às 14h. Pode ser?
             </div>
-            <div className="dc dc-4 out">Perfeito!</div>
+            <div className="dc out" style={{ "--i": 3 } as CSSProperties}>
+              Perfeito!
+            </div>
+            <div className="dc in dc-typing" style={{ "--i": 4 } as CSSProperties}>
+              <i />
+              <i />
+              <i />
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="segments reveal">
+      <section className="segments">
         <span>Feito para quem atende todos os dias</span>
         <div className="segments-track">
           <div className="segments-row">
@@ -192,7 +198,7 @@ export function LandingPage() {
       </section>
 
       <section className="landing-section" id="como-funciona">
-        <div className="section-head reveal">
+        <div className="section-head">
           <span className="hero-kicker">COMO FUNCIONA</span>
           <h2>Do rascunho à conversa real em três passos.</h2>
         </div>
@@ -201,8 +207,8 @@ export function LandingPage() {
             { n: "01", icone: "workflow" as NomeIcone, t: "Desenhe", d: "Arraste mensagens, perguntas, condições e etapas de IA para montar a jornada." },
             { n: "02", icone: "play" as NomeIcone, t: "Teste", d: "Converse com o bot no simulador e veja o caminho percorrido no mapa." },
             { n: "03", icone: "send" as NomeIcone, t: "Publique", d: "Conecte seu número do WhatsApp e deixe o bot atender 24 horas por dia." },
-          ].map((p, i) => (
-            <div key={p.n} className="step-card reveal" style={{ transitionDelay: `${i * 120}ms` }}>
+          ].map((p) => (
+            <div key={p.n} className="step-card">
               <div className="step-top">
                 <span className="step-icon">
                   <Icon name={p.icone} size={20} />
@@ -217,13 +223,13 @@ export function LandingPage() {
       </section>
 
       <section className="landing-section" id="recursos">
-        <div className="section-head reveal">
+        <div className="section-head">
           <span className="hero-kicker">RECURSOS</span>
           <h2>Tudo o que um bot precisa, nada que atrapalhe.</h2>
         </div>
         <div className="features-landing">
-          {RECURSOS.map((r, i) => (
-            <div key={r.titulo} className="feature-tile reveal" style={{ transitionDelay: `${i * 70}ms` }}>
+          {RECURSOS.map((r) => (
+            <div key={r.titulo} className="feature-tile">
               <span>
                 <Icon name={r.icone} size={20} />
               </span>
@@ -235,17 +241,17 @@ export function LandingPage() {
       </section>
 
       <section className="landing-section" id="marketplace">
-        <div className="section-head reveal">
+        <div className="section-head">
           <span className="hero-kicker">MARKETPLACE</span>
           <h2>Não comece do zero.</h2>
           <p>Fluxos prontos, criados por especialistas, para adaptar ao seu negócio.</p>
         </div>
         <div className="landing-market">
-          {ITENS_MARKETPLACE.filter((i) => i.emDestaque).map((item, i) => (
+          {ITENS_MARKETPLACE.filter((i) => i.emDestaque).map((item) => (
             <div
               key={item.id}
-              className="landing-market-card reveal"
-              style={{ "--item-color": item.cor, transitionDelay: `${i * 100}ms` } as CSSProperties}
+              className="landing-market-card"
+              style={{ "--item-color": item.cor } as CSSProperties}
             >
               <span className="item-icon large">
                 <Icon name={item.icone} size={22} />
@@ -263,7 +269,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="landing-section wa-band reveal" id="whatsapp">
+      <section className="landing-section wa-band" id="whatsapp">
         <div>
           <span className="wa-badge">
             <WhatsAppGlyph size={16} /> WhatsApp Business Platform
@@ -301,7 +307,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="final-cta reveal">
+      <section className="final-cta">
         <h2>
           Pronto para tirar seu bot do papel<span className="heading-dot">?</span>
         </h2>
