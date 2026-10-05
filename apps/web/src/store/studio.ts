@@ -9,6 +9,8 @@ import {
   type VariavelBot,
 } from "@syncra/shared";
 import { create } from "zustand";
+import type { NomeIcone } from "../components/Icon";
+import { comPosicoesCompletas, layoutEmCamadas } from "../lib/layout";
 
 export const cores: Record<TipoNo, string> = {
   mensagem: "#59a9ff",
@@ -18,12 +20,20 @@ export const cores: Record<TipoNo, string> = {
   encerramento: "#f18c9a",
 };
 
-export const icones: Record<TipoNo, string> = {
-  mensagem: "▤",
-  pergunta: "?",
-  ia: "✦",
-  condicao: "◇",
-  encerramento: "✓",
+export const icones: Record<TipoNo, NomeIcone> = {
+  mensagem: "message",
+  pergunta: "help",
+  ia: "sparkles",
+  condicao: "split",
+  encerramento: "flag",
+};
+
+export const descricoes: Record<TipoNo, string> = {
+  mensagem: "Envia um texto fixo",
+  pergunta: "Coleta uma resposta",
+  ia: "Gera resposta com IA",
+  condicao: "Divide o caminho",
+  encerramento: "Finaliza a conversa",
 };
 
 export const rotulos: Record<TipoNo, string> = {
@@ -64,17 +74,18 @@ function persistir(definicao: DefinicaoBot) {
 function carregarInicial(): DefinicaoBot {
   try {
     const bruto = localStorage.getItem(CHAVE_RASCUNHO);
-    if (!bruto) return definicaoExemploValida();
+    if (!bruto) return comPosicoesCompletas(definicaoExemploValida());
     const resultado = validarDefinicao(JSON.parse(bruto));
-    return resultado.ok ? resultado.definicao : definicaoExemploValida();
+    return comPosicoesCompletas(resultado.ok ? resultado.definicao : definicaoExemploValida());
   } catch {
-    return definicaoExemploValida();
+    return comPosicoesCompletas(definicaoExemploValida());
   }
 }
 
-let sequencia = 0;
-function gerarId(tipo: TipoNo): string {
-  sequencia += 1;
+function gerarId(tipo: TipoNo, nos: NoBot[]): string {
+  const existentes = new Set(nos.map((no) => no.id));
+  let sequencia = nos.length + 1;
+  while (existentes.has(`no_${tipo}_${sequencia}`)) sequencia += 1;
   return `no_${tipo}_${sequencia}`;
 }
 
@@ -118,7 +129,7 @@ type StudioState = {
   setAba: (aba: AbaInspector) => void;
   dispensarErroImportacao: () => void;
 
-  adicionarNo: (tipo: TipoNo) => void;
+  adicionarNo: (tipo: TipoNo, posicao?: { x: number; y: number }) => void;
   atualizarNo: (id: string, atualizar: (no: NoBot) => NoBot) => void;
   moverNo: (id: string, posicao: { x: number; y: number }) => void;
   excluirNo: (id: string) => void;
@@ -138,6 +149,8 @@ type StudioState = {
   exportarJSON: () => string;
   importarJSON: (texto: string) => void;
   restaurarExemplo: () => void;
+  carregarDefinicao: (definicao: DefinicaoBot) => void;
+  organizarLayout: () => void;
 };
 
 function revalidar(definicao: DefinicaoBot) {
@@ -162,9 +175,9 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   setAba: (aba) => set({ aba }),
   dispensarErroImportacao: () => set({ erroImportacao: null }),
 
-  adicionarNo: (tipo) => {
+  adicionarNo: (tipo, posicao) => {
     const definicaoAtual = get().definicao;
-    const id = gerarId(tipo);
+    const id = gerarId(tipo, definicaoAtual.nos);
     const novoNo = criarNo(tipo, id, definicaoAtual.variaveis);
     const definicao: DefinicaoBot = {
       ...definicaoAtual,
@@ -173,7 +186,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       metadados_editor: {
         posicoes: {
           ...definicaoAtual.metadados_editor?.posicoes,
-          [id]: {
+          [id]: posicao ?? {
             x: 120 + (definicaoAtual.nos.length % 3) * 240,
             y: 80 + Math.floor(definicaoAtual.nos.length / 3) * 180,
           },
@@ -323,18 +336,37 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       });
       return;
     }
+    const definicao = comPosicoesCompletas(resultado.definicao);
     set({
-      definicao: resultado.definicao,
+      definicao,
       selecao: null,
       erroImportacao: null,
-      ...revalidar(resultado.definicao),
+      ...revalidar(definicao),
     });
-    persistir(resultado.definicao);
+    persistir(definicao);
   },
 
   restaurarExemplo: () => {
-    const definicao = definicaoExemploValida();
+    const definicao = comPosicoesCompletas(definicaoExemploValida());
     set({ definicao, selecao: null, erroImportacao: null, ...revalidar(definicao) });
+    persistir(definicao);
+  },
+
+  carregarDefinicao: (entrada) => {
+    const resultado = validarDefinicao(entrada);
+    if (!resultado.ok) return;
+    const definicao = comPosicoesCompletas(structuredClone(resultado.definicao));
+    set({ definicao, selecao: null, erroImportacao: null, ...revalidar(definicao) });
+    persistir(definicao);
+  },
+
+  organizarLayout: () => {
+    const definicaoAtual = get().definicao;
+    const definicao: DefinicaoBot = {
+      ...definicaoAtual,
+      metadados_editor: { posicoes: layoutEmCamadas(definicaoAtual) },
+    };
+    set({ definicao });
     persistir(definicao);
   },
 }));

@@ -1,23 +1,51 @@
-import { Background, Controls, MiniMap, ReactFlow, type Edge, type Node, type NodeTypes } from "@xyflow/react";
+import {
+  Background,
+  BackgroundVariant,
+  Controls,
+  MarkerType,
+  MiniMap,
+  ReactFlow,
+  ReactFlowProvider,
+  applyNodeChanges,
+  useReactFlow,
+  type Edge,
+  type Node,
+  type NodeChange,
+  type NodeTypes,
+} from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { ChangeEvent, CSSProperties } from "react";
-import { useMemo, useRef } from "react";
-import type { ModeloLogico, NoBot, TipoVariavel, VariavelBot } from "@syncra/shared";
-import { FlowNode } from "../components/FlowNode";
+import type { ChangeEvent, CSSProperties, DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ModeloLogico, NoBot, TipoNo, TipoVariavel, VariavelBot } from "@syncra/shared";
+import { FlowNode, type FlowNodeData } from "../components/FlowNode";
+import { Icon } from "../components/Icon";
+import { SimuladorChat } from "../components/SimuladorChat";
 import {
   ORDEM_PALETA,
   cores,
+  descricoes,
   icones,
   rotulos,
   useStudioStore,
   type Selecao,
 } from "../store/studio";
+import { toast } from "../store/toast";
 
 const nodeTypes: NodeTypes = { syncra: FlowNode as unknown as NodeTypes[string] };
+
+const TIPO_ARRASTE = "application/syncra-no";
 
 type AtualizarNo = (id: string, atualizar: (no: NoBot) => NoBot) => void;
 
 export function StudioPage() {
+  return (
+    <ReactFlowProvider>
+      <Estudio />
+    </ReactFlowProvider>
+  );
+}
+
+function Estudio() {
   const definicao = useStudioStore((s) => s.definicao);
   const valida = useStudioStore((s) => s.valida);
   const erros = useStudioStore((s) => s.erros);
@@ -32,40 +60,102 @@ export function StudioPage() {
   const dispensarErroImportacao = useStudioStore((s) => s.dispensarErroImportacao);
   const adicionarNo = useStudioStore((s) => s.adicionarNo);
   const moverNo = useStudioStore((s) => s.moverNo);
+  const excluirNo = useStudioStore((s) => s.excluirNo);
+  const excluirConexao = useStudioStore((s) => s.excluirConexao);
   const conectar = useStudioStore((s) => s.conectar);
   const exportarJSON = useStudioStore((s) => s.exportarJSON);
   const importarJSON = useStudioStore((s) => s.importarJSON);
+  const organizarLayout = useStudioStore((s) => s.organizarLayout);
 
+  const { screenToFlowPosition, fitView } = useReactFlow();
   const inputArquivoRef = useRef<HTMLInputElement>(null);
+  const [simulando, setSimulando] = useState(false);
+  const [noAtivo, setNoAtivo] = useState<string | null>(null);
+  const [arrastandoSobre, setArrastandoSobre] = useState(false);
 
-  const { nodes, edges } = useMemo(() => {
-    const nodes: Node[] = definicao.nos.map((no, i) => ({
-      id: no.id,
-      type: "syncra",
-      position:
-        definicao.metadados_editor?.posicoes[no.id] ?? {
-          x: 80 + (i % 3) * 240,
-          y: 80 + Math.floor(i / 3) * 180,
+  const errosPorNo = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const erro of erros) {
+      if (erro.no_id) mapa.set(erro.no_id, (mapa.get(erro.no_id) ?? 0) + 1);
+    }
+    return mapa;
+  }, [erros]);
+
+  const nodesDoStore = useMemo<Node[]>(
+    () =>
+      definicao.nos.map((no, i) => ({
+        id: no.id,
+        type: "syncra",
+        position: definicao.metadados_editor?.posicoes[no.id] ?? {
+          x: 80 + (i % 3) * 260,
+          y: 80 + Math.floor(i / 3) * 190,
         },
-      data: { no },
-      selected: selecao?.tipo === "no" && selecao.id === no.id,
-    }));
-    const edges: Edge[] = definicao.conexoes.map((c, i) => ({
-      id: `edge-${i}`,
-      source: c.de,
-      target: c.para,
-      label: c.condicao ?? undefined,
-      selected: selecao?.tipo === "conexao" && selecao.index === i,
-    }));
-    return { nodes, edges };
-  }, [definicao, selecao]);
+        data: {
+          no,
+          inicial: definicao.no_inicial === no.id,
+          erros: errosPorNo.get(no.id) ?? 0,
+          ativo: noAtivo === no.id,
+        } satisfies FlowNodeData,
+        selected: selecao?.tipo === "no" && selecao.id === no.id,
+      })),
+    [definicao, selecao, errosPorNo, noAtivo],
+  );
+
+  // O store é a fonte de verdade; o estado local só existe para o arraste fluir
+  // quadro a quadro. A posição definitiva é gravada em onNodeDragStop.
+  const [nodes, setNodes] = useState<Node[]>(nodesDoStore);
+  useEffect(() => setNodes(nodesDoStore), [nodesDoStore]);
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) =>
+      setNodes((atual) =>
+        applyNodeChanges(
+          changes.filter((c) => c.type === "position" || c.type === "dimensions"),
+          atual,
+        ),
+      ),
+    [],
+  );
+
+  const edges = useMemo<Edge[]>(
+    () =>
+      definicao.conexoes.map((c, i) => {
+        const origem = definicao.nos.find((n) => n.id === c.de);
+        const cor = origem ? cores[origem.tipo] : "#8a8da3";
+        const selecionada = selecao?.tipo === "conexao" && selecao.index === i;
+        const emExecucao = noAtivo !== null && c.de === noAtivo;
+        return {
+          id: `edge-${i}`,
+          source: c.de,
+          target: c.para,
+          type: "smoothstep",
+          label: c.condicao ?? undefined,
+          animated: emExecucao || selecionada,
+          selected: selecionada,
+          style: {
+            stroke: cor,
+            strokeWidth: selecionada ? 2.6 : 1.8,
+            opacity: selecionada ? 1 : 0.75,
+          },
+          markerEnd: { type: MarkerType.ArrowClosed, color: cor, width: 16, height: 16 },
+          labelBgPadding: [6, 3] as [number, number],
+          labelBgBorderRadius: 5,
+        };
+      }),
+    [definicao, selecao, noAtivo],
+  );
 
   function aoImportarArquivo(evento: ChangeEvent<HTMLInputElement>) {
     const arquivo = evento.target.files?.[0];
     if (!arquivo) return;
     const leitor = new FileReader();
     leitor.onload = () => {
-      if (typeof leitor.result === "string") importarJSON(leitor.result);
+      if (typeof leitor.result !== "string") return;
+      importarJSON(leitor.result);
+      if (!useStudioStore.getState().erroImportacao) {
+        toast.sucesso("Fluxo importado", arquivo.name);
+        window.setTimeout(() => fitView({ duration: 500, padding: 0.2 }), 50);
+      }
     };
     leitor.readAsText(arquivo);
     evento.target.value = "";
@@ -79,10 +169,26 @@ export function StudioPage() {
     link.download = `${definicao.nome.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.json`;
     link.click();
     URL.revokeObjectURL(url);
+    toast.sucesso("JSON exportado", "A definição foi baixada para o seu computador.");
+  }
+
+  function aoArrastarItem(evento: DragEvent<HTMLButtonElement>, tipo: TipoNo) {
+    evento.dataTransfer.setData(TIPO_ARRASTE, tipo);
+    evento.dataTransfer.effectAllowed = "move";
+  }
+
+  function aoSoltar(evento: DragEvent<HTMLDivElement>) {
+    evento.preventDefault();
+    setArrastandoSobre(false);
+    const tipo = evento.dataTransfer.getData(TIPO_ARRASTE) as TipoNo;
+    if (!tipo || !ORDEM_PALETA.includes(tipo)) return;
+    const posicao = screenToFlowPosition({ x: evento.clientX, y: evento.clientY });
+    // Centraliza o nó no ponteiro (largura ~220, altura ~90).
+    adicionarNo(tipo, { x: Math.round(posicao.x - 110), y: Math.round(posicao.y - 40) });
   }
 
   return (
-    <div className="studio-page">
+    <div className="studio-page page-enter">
       <div className="studio-heading">
         <div>
           <div className="eyebrow">
@@ -91,7 +197,7 @@ export function StudioPage() {
           <h1>
             Construa seu fluxo<span className="heading-dot">.</span>
           </h1>
-          <p>Adicione etapas, conecte caminhos e ajuste cada resposta.</p>
+          <p>Arraste etapas para o mapa, conecte caminhos e teste a conversa em tempo real.</p>
         </div>
         <div className="studio-actions">
           <button
@@ -99,7 +205,7 @@ export function StudioPage() {
             className="button button-ghost"
             onClick={() => inputArquivoRef.current?.click()}
           >
-            ↥ Importar
+            <Icon name="upload" size={15} /> Importar
           </button>
           <input
             ref={inputArquivoRef}
@@ -108,85 +214,174 @@ export function StudioPage() {
             accept="application/json,.json"
             onChange={aoImportarArquivo}
           />
-          <button type="button" className="button button-primary" onClick={aoExportar}>
-            ↧ Exportar JSON
+          <button type="button" className="button button-ghost" onClick={aoExportar}>
+            <Icon name="download" size={15} /> Exportar
+          </button>
+          <button
+            type="button"
+            className={simulando ? "button button-primary is-on" : "button button-primary"}
+            onClick={() => {
+              setSimulando((v) => !v);
+              window.setTimeout(() => fitView({ duration: 400, padding: 0.2 }), 340);
+            }}
+          >
+            <Icon name={simulando ? "x" : "play"} size={14} filled={!simulando} />
+            {simulando ? "Fechar teste" : "Testar conversa"}
           </button>
         </div>
       </div>
 
       {erroImportacao ? (
         <div className="import-error">
-          <span>{erroImportacao}</span>
-          <button type="button" onClick={dispensarErroImportacao}>
-            ✕
+          <span>
+            <Icon name="alert" size={14} /> {erroImportacao}
+          </span>
+          <button type="button" aria-label="Dispensar erro" onClick={dispensarErroImportacao}>
+            <Icon name="x" size={14} />
           </button>
         </div>
       ) : null}
-
-      <div className="editor-banner">
-        <span className="banner-dot" />
-        <span>
-          Seu trabalho é salvo automaticamente <strong>neste navegador</strong>. Publicação e
-          conversas chegam com a integração da API.
-        </span>
-      </div>
 
       <div className="studio-layout">
         <section className="editor-main">
           <div className="editor-toolbar">
             <div className="toolbar-title">
-              <span className="toolbar-icon">◇</span>
+              <span className="toolbar-icon">
+                <Icon name="workflow" size={17} />
+              </span>
               <div>
-                <strong>Mapa da conversa</strong>
+                <strong>{definicao.nome}</strong>
                 <small>
-                  {definicao.nos.length} etapas · {definicao.conexoes.length} conexões
+                  {definicao.nos.length} etapas · {definicao.conexoes.length} conexões · salvo
+                  automaticamente
                 </small>
               </div>
             </div>
-            <div className="toolbar-help">Arraste os pontos laterais para conectar</div>
+            <div className="toolbar-right">
+              <div className="toolbar-help">
+                <kbd>Arraste</kbd> etapas para o mapa · <kbd>Del</kbd> exclui a seleção
+              </div>
+              <button
+                type="button"
+                className="toolbar-button"
+                onClick={() => {
+                  organizarLayout();
+                  window.setTimeout(() => fitView({ duration: 500, padding: 0.2 }), 50);
+                }}
+              >
+                <Icon name="wand" size={14} /> Organizar
+              </button>
+            </div>
           </div>
 
           <div className="node-palette" aria-label="Adicionar etapa">
-            <span>ADICIONAR ETAPA</span>
             {ORDEM_PALETA.map((tipo) => (
               <button
                 key={tipo}
                 type="button"
+                draggable
+                title={`${descricoes[tipo]} — arraste ou clique`}
                 style={{ "--node-color": cores[tipo] } as CSSProperties}
+                onDragStart={(e) => aoArrastarItem(e, tipo)}
                 onClick={() => adicionarNo(tipo)}
               >
-                <span>{icones[tipo]}</span>
-                {rotulos[tipo]}
+                <span className="palette-icon">
+                  <Icon name={icones[tipo]} size={14} strokeWidth={2} />
+                </span>
+                <span className="palette-text">
+                  <strong>{rotulos[tipo]}</strong>
+                  <small>{descricoes[tipo]}</small>
+                </span>
               </button>
             ))}
           </div>
 
-          <div className="canvas">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              onConnect={(conexao) => {
-                if (conexao.source && conexao.target) conectar(conexao.source, conexao.target);
+          <div className="canvas-wrap">
+            <div
+              className={arrastandoSobre ? "canvas drop-active" : "canvas"}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (!arrastandoSobre) setArrastandoSobre(true);
               }}
-              onNodeClick={(_, node) => selecionarNo(node.id)}
-              onEdgeClick={(_, edge) => {
-                const index = Number(edge.id.replace("edge-", ""));
-                if (!Number.isNaN(index)) selecionarConexao(index);
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as globalThis.Node | null)) {
+                  setArrastandoSobre(false);
+                }
               }}
-              onNodeDragStop={(_, node) => moverNo(node.id, node.position)}
-              onPaneClick={limparSelecao}
-              fitView
+              onDrop={aoSoltar}
             >
-              <Background />
-              <Controls />
-              <MiniMap />
-            </ReactFlow>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                onNodesChange={onNodesChange}
+                onConnect={(conexao) => {
+                  if (conexao.source && conexao.target) conectar(conexao.source, conexao.target);
+                }}
+                onNodeClick={(_, node) => selecionarNo(node.id)}
+                onNodeDragStart={(_, node) => selecionarNo(node.id)}
+                onEdgeClick={(_, edge) => {
+                  const index = Number(edge.id.replace("edge-", ""));
+                  if (!Number.isNaN(index)) selecionarConexao(index);
+                }}
+                onNodeDragStop={(_, node) => moverNo(node.id, node.position)}
+                onNodesDelete={(removidos) => removidos.forEach((n) => excluirNo(n.id))}
+                onEdgesDelete={(removidas) =>
+                  removidas
+                    .map((e) => Number(e.id.replace("edge-", "")))
+                    .filter((i) => !Number.isNaN(i))
+                    .sort((a, b) => b - a)
+                    .forEach((i) => excluirConexao(i))
+                }
+                onPaneClick={limparSelecao}
+                deleteKeyCode={["Delete", "Backspace"]}
+                snapToGrid
+                snapGrid={[20, 20]}
+                connectionLineStyle={{ stroke: "#b49cff", strokeWidth: 2, strokeDasharray: "6 4" }}
+                fitView
+                fitViewOptions={{ padding: 0.2 }}
+                proOptions={{ hideAttribution: true }}
+              >
+                <Background variant={BackgroundVariant.Dots} gap={20} size={1.4} color="#33364a" />
+                <Controls showInteractive={false} />
+                <MiniMap
+                  className="flow-minimap"
+                  pannable
+                  zoomable
+                  nodeColor={(n) => cores[(n.data as FlowNodeData).no.tipo]}
+                  maskColor="#10111bcc"
+                />
+              </ReactFlow>
+              {definicao.nos.length === 0 ? (
+                <div className="canvas-empty">
+                  <Icon name="layers" size={28} />
+                  <strong>Comece arrastando uma etapa</strong>
+                  <p>Solte uma Mensagem aqui para iniciar a conversa.</p>
+                </div>
+              ) : null}
+              {arrastandoSobre ? (
+                <div className="drop-hint">
+                  <Icon name="plus" size={14} /> Solte para adicionar a etapa
+                </div>
+              ) : null}
+            </div>
+            {simulando ? (
+              <SimuladorChat
+                definicao={definicao}
+                valida={valida}
+                aoMudarNoAtivo={setNoAtivo}
+                aoFechar={() => {
+                  setSimulando(false);
+                  window.setTimeout(() => fitView({ duration: 400, padding: 0.2 }), 60);
+                }}
+              />
+            ) : null}
           </div>
 
           <div className="editor-foot">
-            <span>
-              <i /> {valida ? "Fluxo válido" : "Fluxo com pendências"}
+            <span className={valida ? "foot-ok" : "foot-warn"}>
+              <i /> {valida ? "Fluxo válido" : `${erros.length} pendência(s) no fluxo`}
             </span>
             <span>Versão do schema: {definicao.versao_schema}</span>
           </div>
@@ -215,7 +410,7 @@ export function StudioPage() {
           <div className="validation-panel">
             <div className="validation-title">
               <span className={`validation-icon ${valida ? "valid" : "invalid"}`}>
-                {valida ? "✓" : "✕"}
+                <Icon name={valida ? "check" : "x"} size={11} strokeWidth={2.6} />
               </span>
               <strong>{valida ? "Definição válida" : "Definição inválida"}</strong>
             </div>
@@ -225,7 +420,15 @@ export function StudioPage() {
               <ul>
                 {erros.map((erro, i) => (
                   <li key={i}>
-                    {erro.regra}: {erro.mensagem}
+                    {erro.no_id ? (
+                      <button type="button" onClick={() => selecionarNo(erro.no_id!)}>
+                        {erro.regra}: {erro.mensagem}
+                      </button>
+                    ) : (
+                      <>
+                        {erro.regra}: {erro.mensagem}
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -248,7 +451,9 @@ function PainelPropriedades() {
   if (!selecao) {
     return (
       <div className="empty-inspector">
-        <span>◇</span>
+        <span>
+          <Icon name="workflow" size={24} />
+        </span>
         <h3>Selecione uma etapa</h3>
         <p>Clique em um nó ou conexão no mapa para ajustar suas propriedades.</p>
       </div>
@@ -294,7 +499,9 @@ function PainelConexao({
     <>
       <div className="inspector-kicker">CONEXÃO SELECIONADA</div>
       <div className="selected-title">
-        <span style={{ "--node-color": "#b39bff" } as CSSProperties}>↗</span>
+        <span style={{ "--node-color": "#b39bff" } as CSSProperties}>
+          <Icon name="arrowUpRight" size={17} />
+        </span>
         <div>
           <strong>
             {noDe ? rotulos[noDe.tipo] : conexao.de} → {noPara ? rotulos[noPara.tipo] : conexao.para}
@@ -317,7 +524,7 @@ function PainelConexao({
       </div>
       <div className="inspector-divider" />
       <button type="button" className="text-button danger" onClick={() => excluir(index)}>
-        Excluir conexão
+        <Icon name="trash" size={12} /> Excluir conexão
       </button>
     </>
   );
@@ -342,7 +549,9 @@ function PainelNo({
     <>
       <div className="inspector-kicker">ETAPA SELECIONADA</div>
       <div className="selected-title">
-        <span style={{ "--node-color": cores[no.tipo] } as CSSProperties}>{icones[no.tipo]}</span>
+        <span style={{ "--node-color": cores[no.tipo] } as CSSProperties}>
+          <Icon name={icones[no.tipo]} size={17} />
+        </span>
         <div>
           <strong>{rotulos[no.tipo]}</strong>
           <small>{no.id}</small>
@@ -361,7 +570,7 @@ function PainelNo({
         Definir como etapa inicial
       </label>
       <button type="button" className="text-button danger" onClick={() => excluirNo(no.id)}>
-        Excluir etapa
+        <Icon name="trash" size={12} /> Excluir etapa
       </button>
     </>
   );
@@ -540,7 +749,7 @@ function PainelFluxo() {
       <div className="subheading">
         <strong>Variáveis</strong>
         <button type="button" onClick={adicionarVariavel}>
-          ＋ Adicionar
+          <Icon name="plus" size={12} /> Adicionar
         </button>
       </div>
       {definicao.variaveis.map((variavel: VariavelBot, i: number) => (
@@ -552,7 +761,7 @@ function PainelFluxo() {
               aria-label={`Excluir variável ${variavel.chave}`}
               onClick={() => excluirVariavel(i)}
             >
-              ×
+              <Icon name="x" size={13} />
             </button>
           </div>
           <input

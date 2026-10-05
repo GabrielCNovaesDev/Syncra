@@ -40,7 +40,19 @@ Em caso de conflito, preserve os invariantes de `AGENTS.md` e confirme a intenç
 - Estúdio renderiza uma definição de exemplo no React Flow e permite validação local.
 - Marca visível alterada de `Syncra` para `Syncra Bot` no cabeçalho, título do navegador e catálogo.
 
-O código ainda representa o esqueleto E1/início do frontend. Autenticação, persistência dos bots, edição completa do grafo, conversa real, catálogo funcional, assinatura e integrações de IA ainda não estão concluídos.
+### Camada de demonstração (outubro de 2026)
+
+Tudo abaixo roda só no navegador, sem backend, e está marcado na interface como demonstração:
+
+- `/` landing animada e `/entrar` login mockado (qualquer e-mail entra; sessão em `localStorage`). Rotas do app ficam em `/app/*` com guarda de sessão.
+- Estúdio: arraste de nós corrigido (antes o React Flow controlado não tinha `onNodesChange`), arrastar da paleta para o canvas, tecla Delete, snap na grade, auto-layout em camadas ("Organizar"), badges de início/erro por nó e **simulador de conversa** que usa `@syncra/engine` de verdade; nós `ia` recebem resposta simulada.
+- Marketplace com 10 fluxos mockados (`apps/web/src/data/marketplace.ts`), todos válidos no validador V-01..V-08, com busca, filtros, prévia do grafo e checkout sandbox simulado que carrega o fluxo no estúdio.
+- Integrações: assistente simulado de WhatsApp/Meta (cadastro incorporado, número, webhook, verificação) e painel conectado com prévia em telefone. O token digitado nunca é salvo — só os 4 últimos caracteres.
+- Ícones SVG próprios em `components/Icon.tsx` (sem dependência nova).
+
+Nada disso substitui E2 (auth real), E7 (catálogo na API) ou a integração real com a Meta; quando esses chegarem, troque os stores `sessao`, `integracoes` e os dados de `data/marketplace.ts` pelas chamadas à API.
+
+O código de backend ainda representa o esqueleto E1. Autenticação, persistência dos bots, edição completa do grafo, conversa real, catálogo funcional, assinatura e integrações de IA ainda não estão concluídos.
 
 ## Estado validado no handoff
 

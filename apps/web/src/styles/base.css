@@ -1,0 +1,558 @@
+/* ===================================================================
+   Base compartilhada: ícones, botões, campos, modais, toasts
+   =================================================================== */
+html {
+  scroll-behavior: smooth;
+}
+body {
+  background: #10111b;
+}
+.icon {
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+}
+.brand-mark .icon {
+  color: #1a1732;
+}
+.brand {
+  white-space: nowrap;
+}
+.brand-mark {
+  flex: none;
+}
+@media (max-width: 1150px) {
+  .sidebar .brand {
+    font-size: 21px;
+    gap: 8px;
+    padding: 0 8px;
+  }
+}
+.muted {
+  color: #9799af;
+  font-size: 13px;
+  line-height: 1.6;
+}
+kbd {
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #3d4054;
+  background: #25273a;
+  color: #c3c5d6;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.route-loading {
+  display: grid;
+  place-items: center;
+  min-height: 50vh;
+}
+.page-enter {
+  animation: page-in 0.38s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* Botões */
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+.button.block {
+  width: 100%;
+}
+.button-lg {
+  padding: 14px 22px;
+  font-size: 14px;
+  border-radius: 11px;
+}
+.button-primary.is-on {
+  background: #3a3155;
+  color: #e0d6ff;
+  box-shadow: none;
+}
+.button-danger {
+  background: #3b2028;
+  border-color: #6a3341;
+  color: #ffb8c3;
+}
+.button-danger:hover {
+  background: #4d2832;
+}
+.button-whatsapp {
+  background: #25d366;
+  color: #062b14;
+  box-shadow: 0 6px 24px #25d36633;
+}
+.button-whatsapp:hover {
+  background: #3ee07c;
+}
+.button-meta {
+  background: #1877f2;
+  color: #fff;
+}
+.button-meta:hover {
+  background: #3b8bf5;
+}
+.button-social {
+  background: #1f2130;
+  border-color: #3a3d50;
+  color: #e3e3ee;
+}
+.button-social:hover {
+  background: #282a3c;
+}
+
+.spinner {
+  display: inline-block;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid #ffffff1c;
+  border-top-color: #b49cff;
+  animation: spin 0.8s linear infinite;
+}
+.spinner.small {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  border-top-color: currentColor;
+}
+.spinner.tiny {
+  width: 11px;
+  height: 11px;
+  border-width: 2px;
+}
+
+/* Campos */
+.field {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #bbbccc;
+  margin-bottom: 15px;
+}
+.field input,
+.field select {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  padding: 11px 12px;
+  border: 1px solid #3b3e50;
+  border-radius: 8px;
+  background: #1d1f2c;
+  color: #ececf4;
+  font-size: 13px;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.field input:focus,
+.field select:focus {
+  border-color: #a58bfa;
+  box-shadow: 0 0 0 3px #a58bfa22;
+}
+.field small {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin-top: 7px;
+  font-weight: 500;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #8b8ea3;
+}
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.optional {
+  font-weight: 500;
+  color: #7b7e93;
+  margin-left: 6px;
+}
+.field-label-row {
+  display: flex;
+  justify-content: space-between;
+}
+.field-label-row a {
+  color: #b9a6ff;
+  font-weight: 600;
+}
+.input-icon {
+  position: relative;
+}
+.input-icon .icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  margin-top: 3px;
+  transform: translateY(-50%);
+  color: #7c8096;
+}
+.field .input-icon input {
+  padding-left: 36px;
+}
+.copy-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+  padding: 7px 7px 7px 12px;
+  border: 1px dashed #3d4055;
+  border-radius: 8px;
+  background: #171925;
+}
+.copy-field code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: #d6d0f5;
+}
+.copy-field button {
+  border: 0;
+  background: #2a2c3e;
+  color: #c8c9d8;
+  border-radius: 6px;
+  width: 28px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.copy-field button:hover {
+  background: #3a3c52;
+  color: #fff;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #07080fb3;
+  backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  animation: fade-in 0.2s ease both;
+}
+.modal {
+  position: relative;
+  width: min(100%, 560px);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  background: #191b28;
+  border: 1px solid #363950;
+  border-radius: 18px;
+  box-shadow: 0 40px 90px #0009;
+  animation: modal-in 0.28s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1px solid #393c50;
+  background: #222433;
+  color: #c3c5d4;
+  display: grid;
+  place-items: center;
+}
+.modal-close:hover {
+  background: #2f3145;
+  color: #fff;
+}
+
+/* Toasts */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.toaster {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 80;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 40px));
+}
+.toast {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 13px 13px 13px 15px;
+  border-radius: 12px;
+  background: #21233a;
+  border: 1px solid #3e4160;
+  box-shadow: 0 18px 40px #0008;
+  animation: toast-in 0.3s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.toast > .icon {
+  margin-top: 1px;
+}
+.toast-sucesso > .icon {
+  color: #63d7ad;
+}
+.toast-info > .icon {
+  color: #9fc4ff;
+}
+.toast-erro > .icon {
+  color: #f6a4b2;
+}
+.toast div {
+  flex: 1;
+  min-width: 0;
+}
+.toast strong {
+  display: block;
+  font-size: 12px;
+}
+.toast p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #a6a8bc;
+  line-height: 1.45;
+}
+.toast button {
+  border: 0;
+  background: none;
+  color: #8b8ea3;
+  padding: 2px;
+}
+
+/* Peças reutilizadas em marketplace, painel e landing */
+.item-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  flex: none;
+  color: var(--item-color, #b49cff);
+  background: color-mix(in srgb, var(--item-color, #b49cff), transparent 85%);
+  border: 1px solid color-mix(in srgb, var(--item-color, #b49cff), transparent 70%);
+}
+.item-icon.large {
+  width: 50px;
+  height: 50px;
+  border-radius: 13px;
+}
+.price-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: #2a2c3d;
+  color: #d8d0ff;
+  white-space: nowrap;
+}
+.rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffd166;
+}
+.rating small {
+  color: #7f8297;
+  font-weight: 600;
+}
+
+/* ===================================================================
+   Shell
+   =================================================================== */
+.nav-item {
+  position: relative;
+}
+.nav-dot {
+  margin-left: auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #25d366;
+  box-shadow: 0 0 0 3px #25d36622;
+}
+.workspace-switch strong {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-profile {
+  position: relative;
+}
+.profile-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  padding: 4px;
+  border-radius: 9px;
+}
+.profile-button:hover {
+  background: #1f2130;
+}
+.profile-button > span:last-child {
+  min-width: 0;
+}
+.profile-button small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  padding: 6px;
+  border-radius: 10px;
+  background: #22243a;
+  border: 1px solid #3c3f58;
+  box-shadow: 0 14px 30px #0008;
+  animation: modal-in 0.18s ease both;
+}
+.profile-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  background: none;
+  border-radius: 7px;
+  color: #f2b3bf;
+  font-size: 12px;
+  font-weight: 700;
+}
+.profile-menu button:hover {
+  background: #2f3148;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.topbar-logout {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #303245;
+  background: #1c1e2b;
+  color: #a3a6ba;
+}
+.topbar-logout:hover {
+  color: #fff;
+  background: #26283a;
+}
+
+@media (max-width: 650px) {
+  .topbar-right .topbar-status {
+    display: none;
+  }
+  .sidebar .brand > span:last-child {
+    display: none;
+  }
+  .nav-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+  }
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Scrollbars escuras em toda a aplicação */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #34374a transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #34374a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
