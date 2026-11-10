@@ -61,25 +61,8 @@ export function textoPreview(no: NoBot): string {
   }
 }
 
-const CHAVE_RASCUNHO = "syncra.studio.rascunho.v1";
-
-function persistir(definicao: DefinicaoBot) {
-  try {
-    localStorage.setItem(CHAVE_RASCUNHO, JSON.stringify(definicao));
-  } catch {
-    // ambiente sem localStorage disponível; segue apenas em memória.
-  }
-}
-
 function carregarInicial(): DefinicaoBot {
-  try {
-    const bruto = localStorage.getItem(CHAVE_RASCUNHO);
-    if (!bruto) return comPosicoesCompletas(definicaoExemploValida());
-    const resultado = validarDefinicao(JSON.parse(bruto));
-    return comPosicoesCompletas(resultado.ok ? resultado.definicao : definicaoExemploValida());
-  } catch {
-    return comPosicoesCompletas(definicaoExemploValida());
-  }
+  return comPosicoesCompletas(definicaoExemploValida());
 }
 
 function gerarId(tipo: TipoNo, nos: NoBot[]): string {
@@ -194,7 +177,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       },
     };
     set({ definicao, selecao: { tipo: "no", id }, aba: "propriedades", ...revalidar(definicao) });
-    persistir(definicao);
   },
 
   atualizarNo: (id, atualizar) => {
@@ -204,7 +186,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       nos: definicaoAtual.nos.map((no) => (no.id === id ? atualizar(no) : no)),
     };
     set({ definicao, ...revalidar(definicao) });
-    persistir(definicao);
   },
 
   moverNo: (id, posicao) => {
@@ -216,7 +197,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       },
     };
     set({ definicao });
-    persistir(definicao);
   },
 
   excluirNo: (id) => {
@@ -235,13 +215,11 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       selecao: selecaoAtual?.tipo === "no" && selecaoAtual.id === id ? null : selecaoAtual,
       ...revalidar(definicao),
     });
-    persistir(definicao);
   },
 
   definirNoInicial: (id) => {
     const definicao: DefinicaoBot = { ...get().definicao, no_inicial: id };
     set({ definicao, ...revalidar(definicao) });
-    persistir(definicao);
   },
 
   conectar: (de, para) => {
@@ -253,7 +231,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       conexoes: [...definicaoAtual.conexoes, conexao],
     };
     set({ definicao, ...revalidar(definicao) });
-    persistir(definicao);
   },
 
   atualizarCondicaoConexao: (index, condicao) => {
@@ -261,7 +238,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     const conexoes = definicaoAtual.conexoes.map((c, i) => (i === index ? { ...c, condicao } : c));
     const definicao: DefinicaoBot = { ...definicaoAtual, conexoes };
     set({ definicao, ...revalidar(definicao) });
-    persistir(definicao);
   },
 
   excluirConexao: (index) => {
@@ -274,13 +250,11 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       selecao: selecaoAtual?.tipo === "conexao" ? null : selecaoAtual,
       ...revalidar(definicao),
     });
-    persistir(definicao);
   },
 
   atualizarMeta: (alteracoes) => {
     const definicao: DefinicaoBot = { ...get().definicao, ...alteracoes };
     set({ definicao, ...revalidar(definicao) });
-    persistir(definicao);
   },
 
   adicionarVariavel: () => {
@@ -295,7 +269,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       variaveis: [...definicaoAtual.variaveis, nova],
     };
     set({ definicao, ...revalidar(definicao) });
-    persistir(definicao);
   },
 
   atualizarVariavel: (index, alteracoes) => {
@@ -305,7 +278,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     );
     const definicao: DefinicaoBot = { ...definicaoAtual, variaveis };
     set({ definicao, ...revalidar(definicao) });
-    persistir(definicao);
   },
 
   excluirVariavel: (index) => {
@@ -313,7 +285,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     const variaveis = definicaoAtual.variaveis.filter((_, i) => i !== index);
     const definicao: DefinicaoBot = { ...definicaoAtual, variaveis };
     set({ definicao, ...revalidar(definicao) });
-    persistir(definicao);
   },
 
   exportarJSON: () => JSON.stringify(get().definicao, null, 2),
@@ -343,13 +314,11 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       erroImportacao: null,
       ...revalidar(definicao),
     });
-    persistir(definicao);
   },
 
   restaurarExemplo: () => {
     const definicao = comPosicoesCompletas(definicaoExemploValida());
     set({ definicao, selecao: null, erroImportacao: null, ...revalidar(definicao) });
-    persistir(definicao);
   },
 
   carregarDefinicao: (entrada) => {
@@ -357,7 +326,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     if (!resultado.ok) return;
     const definicao = comPosicoesCompletas(structuredClone(resultado.definicao));
     set({ definicao, selecao: null, erroImportacao: null, ...revalidar(definicao) });
-    persistir(definicao);
   },
 
   organizarLayout: () => {
@@ -367,6 +335,5 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       metadados_editor: { posicoes: layoutEmCamadas(definicaoAtual) },
     };
     set({ definicao });
-    persistir(definicao);
   },
 }));

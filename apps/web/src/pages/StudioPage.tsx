@@ -16,6 +16,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import type { ChangeEvent, CSSProperties, DragEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { ModeloLogico, NoBot, TipoNo, TipoVariavel, VariavelBot } from "@syncra/shared";
 import { FlowNode, type FlowNodeData } from "../components/FlowNode";
 import { Icon } from "../components/Icon";
@@ -30,6 +31,7 @@ import {
   type Selecao,
 } from "../store/studio";
 import { toast } from "../store/toast";
+import { useBotsStore } from "../store/bots";
 
 const nodeTypes: NodeTypes = { syncra: FlowNode as unknown as NodeTypes[string] };
 
@@ -46,6 +48,16 @@ export function StudioPage() {
 }
 
 function Estudio() {
+  const [parametros, setParametros] = useSearchParams();
+  const botIdNaUrl = parametros.get("bot");
+  const novoNaUrl = parametros.get("novo");
+  const ativoId = useBotsStore((s) => s.ativoId);
+  const versao = useBotsStore((s) => s.versao);
+  const ultimaSalva = useBotsStore((s) => s.ultimaSalva);
+  const salvando = useBotsStore((s) => s.carregando);
+  const abrirBot = useBotsStore((s) => s.abrir);
+  const novoBot = useBotsStore((s) => s.novo);
+  const salvarBot = useBotsStore((s) => s.salvar);
   const definicao = useStudioStore((s) => s.definicao);
   const valida = useStudioStore((s) => s.valida);
   const erros = useStudioStore((s) => s.erros);
@@ -72,6 +84,26 @@ function Estudio() {
   const [simulando, setSimulando] = useState(false);
   const [noAtivo, setNoAtivo] = useState<string | null>(null);
   const [arrastandoSobre, setArrastandoSobre] = useState(false);
+  const alterado = !ativoId || JSON.stringify(definicao) !== ultimaSalva;
+
+  useEffect(() => {
+    if (novoNaUrl === "1") { novoBot(); setParametros({}, { replace: true }); return; }
+    if (botIdNaUrl && botIdNaUrl !== ativoId) {
+      void abrirBot(botIdNaUrl).catch((erro) =>
+        toast.erro("Não foi possível abrir o bot", String(erro instanceof Error ? erro.message : erro)));
+    }
+  }, [botIdNaUrl, novoNaUrl, ativoId, abrirBot, novoBot, setParametros]);
+
+  async function aoSalvar() {
+    try {
+      const numero = await salvarBot();
+      const id = useBotsStore.getState().ativoId;
+      if (id) setParametros({ bot: id }, { replace: true });
+      toast.sucesso("Bot salvo", `Versão ${numero} guardada na sua conta.`);
+    } catch (erro) {
+      toast.erro("Não foi possível salvar", erro instanceof Error ? erro.message : undefined);
+    }
+  }
 
   const errosPorNo = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -192,7 +224,7 @@ function Estudio() {
       <div className="studio-heading">
         <div>
           <div className="eyebrow">
-            ESTÚDIO VISUAL <span className="eyebrow-slash">/</span> RASCUNHO LOCAL
+            ESTÚDIO VISUAL <span className="eyebrow-slash">/</span> {ativoId ? `VERSÃO ${versao}` : "NOVO BOT"}
           </div>
           <h1>
             Construa seu fluxo<span className="heading-dot">.</span>
@@ -200,6 +232,12 @@ function Estudio() {
           <p>Arraste etapas para o mapa, conecte caminhos e teste a conversa em tempo real.</p>
         </div>
         <div className="studio-actions">
+          <button type="button" className="button button-ghost" onClick={() => { novoBot(); setParametros({}, { replace: true }); }}>
+            <Icon name="plus" size={15} /> Novo
+          </button>
+          <button type="button" className="button button-primary" disabled={!valida || salvando || !alterado} onClick={() => { void aoSalvar(); }}>
+            <Icon name="check" size={15} /> {salvando ? "Salvando…" : "Salvar bot"}
+          </button>
           <button
             type="button"
             className="button button-ghost"
@@ -252,8 +290,7 @@ function Estudio() {
               <div>
                 <strong>{definicao.nome}</strong>
                 <small>
-                  {definicao.nos.length} etapas · {definicao.conexoes.length} conexões · salvo
-                  automaticamente
+                  {definicao.nos.length} etapas · {definicao.conexoes.length} conexões · {ativoId ? (alterado ? "alterações não salvas" : `versão ${versao} salva`) : "não salvo"}
                 </small>
               </div>
             </div>

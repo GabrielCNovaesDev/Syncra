@@ -1,10 +1,12 @@
-import type { CSSProperties } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { Icon, WhatsAppGlyph, type NomeIcone } from "../components/Icon";
 import { ITENS_MARKETPLACE, carregarAdquiridos, formatarPreco } from "../data/marketplace";
 import { useIntegracoesStore } from "../store/integracoes";
 import { useSessaoStore } from "../store/sessao";
-import { cores, useStudioStore } from "../store/studio";
+import { useStudioStore } from "../store/studio";
+import { useBotsStore } from "../store/bots";
+import { toast } from "../store/toast";
 
 function saudacao(): string {
   const hora = new Date().getHours();
@@ -14,21 +16,22 @@ function saudacao(): string {
 }
 
 export function PainelPage() {
-  const definicao = useStudioStore((s) => s.definicao);
   const valida = useStudioStore((s) => s.valida);
+  const bots = useBotsStore((s) => s.lista);
+  const ativoId = useBotsStore((s) => s.ativoId);
+  const carregarLista = useBotsStore((s) => s.carregarLista);
   const usuario = useSessaoStore((s) => s.usuario);
   const whatsapp = useIntegracoesStore((s) => s.whatsapp);
   const adquiridos = carregarAdquiridos();
   const sugestoes = ITENS_MARKETPLACE.filter((i) => !adquiridos.includes(i.id)).slice(0, 3);
 
-  const contagemPorTipo = definicao.nos.reduce<Record<string, number>>((acc, no) => {
-    acc[no.tipo] = (acc[no.tipo] ?? 0) + 1;
-    return acc;
-  }, {});
+  useEffect(() => {
+    void carregarLista().catch((erro) => toast.erro("Não foi possível carregar seus bots", String(erro)));
+  }, [carregarLista]);
 
   const passos: { feito: boolean; titulo: string; para: string; icone: NomeIcone }[] = [
-    { feito: definicao.nos.length > 0, titulo: "Desenhe seu primeiro fluxo", para: "/app/studio", icone: "workflow" },
-    { feito: valida, titulo: "Deixe o fluxo sem pendências", para: "/app/studio", icone: "shield" },
+    { feito: bots.length > 0, titulo: "Salve seu primeiro fluxo", para: "/app/studio?novo=1", icone: "workflow" },
+    { feito: Boolean(ativoId) && valida, titulo: "Deixe o fluxo sem pendências", para: "/app/studio", icone: "shield" },
     { feito: adquiridos.length > 0, titulo: "Explore um modelo do marketplace", para: "/app/marketplace", icone: "store" },
     { feito: Boolean(whatsapp), titulo: "Conecte o WhatsApp", para: "/app/integracoes", icone: "plug" },
   ];
@@ -45,8 +48,8 @@ export function PainelPage() {
           </h1>
           <p>Um lugar para desenhar conversas que fazem sentido.</p>
         </div>
-        <Link className="button button-primary" to="/app/studio">
-          <Icon name="plus" size={15} /> Abrir estúdio
+        <Link className="button button-primary" to="/app/studio?novo=1">
+          <Icon name="plus" size={15} /> Criar bot
         </Link>
       </div>
 
@@ -102,26 +105,17 @@ export function PainelPage() {
           <span className="stat-icon purple">
             <Icon name="workflow" size={17} />
           </span>
-          <span className="stat-label">Etapas no fluxo</span>
-          <strong>{String(definicao.nos.length).padStart(2, "0")}</strong>
-          <div className="type-bar">
-            {Object.entries(contagemPorTipo).map(([tipo, qtd]) => (
-              <span
-                key={tipo}
-                style={{ flex: qtd, background: cores[tipo as keyof typeof cores] }}
-                title={`${tipo}: ${qtd}`}
-              />
-            ))}
-          </div>
-          <small>{definicao.conexoes.length} conexões configuradas</small>
+          <span className="stat-label">Bots salvos</span>
+          <strong>{String(bots.length).padStart(2, "0")}</strong>
+          <small>Guardados na sua conta</small>
         </div>
         <div className="stat-card">
-          <span className={valida ? "stat-icon green" : "stat-icon red"}>
-            <Icon name={valida ? "checkCircle" : "alert"} size={17} />
+          <span className={ativoId && valida ? "stat-icon green" : "stat-icon red"}>
+            <Icon name={ativoId && valida ? "checkCircle" : "alert"} size={17} />
           </span>
           <span className="stat-label">Validação</span>
-          <strong className="stat-word">{valida ? "Pronto" : "Pendente"}</strong>
-          <small>{valida ? "Regras V-01 a V-08 atendidas" : "Ajuste os erros no estúdio"}</small>
+          <strong className="stat-word">{ativoId && valida ? "Pronto" : "Pendente"}</strong>
+          <small>{ativoId && valida ? "Regras V-01 a V-08 atendidas" : "Crie e salve um fluxo válido"}</small>
         </div>
         <Link to="/app/integracoes" className="stat-card stat-link">
           <span className={whatsapp ? "stat-icon whatsapp" : "stat-icon blue"}>
@@ -137,28 +131,20 @@ export function PainelPage() {
         <section className="surface-panel draft-panel">
           <div className="panel-heading">
             <div>
-              <h3>Continue de onde parou</h3>
-              <p>Seu fluxo mais recente está disponível no estúdio.</p>
+              <h3>Seus bots</h3>
+              <p>Abra um fluxo salvo para continuar editando.</p>
             </div>
-            <span className="outline-tag">Em edição</span>
+            <span className="outline-tag">{bots.length} salvos</span>
           </div>
-          <Link className="draft-row" to="/app/studio">
-            <span className="draft-icon">
-              <Icon name="bot" size={22} />
-            </span>
-            <div>
-              <strong>{definicao.nome}</strong>
-              <small>
-                {definicao.nos.length} etapas · {definicao.variaveis.length} variáveis ·{" "}
-                {definicao.modelo_padrao === "modelo-rapido" ? "modelo rápido" : "modelo qualidade"}
-              </small>
-            </div>
-            <span className="icon-link" aria-hidden="true">
-              <Icon name="arrowUpRight" size={15} />
-            </span>
-          </Link>
+          {bots.length === 0 ? <p>Nenhum bot salvo ainda.</p> : bots.map((bot) => (
+            <Link className="draft-row" to={`/app/studio?bot=${bot.id}`} key={bot.id}>
+              <span className="draft-icon"><Icon name="bot" size={22} /></span>
+              <div><strong>{bot.nome}</strong><small>Abra para editar e salvar uma nova versão</small></div>
+              <span className="icon-link" aria-hidden="true"><Icon name="arrowUpRight" size={15} /></span>
+            </Link>
+          ))}
           <div className="panel-footer">
-            O rascunho é guardado somente neste navegador. Exporte o JSON para ter uma cópia.
+            Cada salvamento cria uma versão imutável no servidor.
           </div>
         </section>
 

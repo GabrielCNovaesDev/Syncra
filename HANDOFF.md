@@ -1,6 +1,15 @@
 # Handoff do projeto Syncra Bot
 
-Atualizado em 1 de outubro de 2026.
+Atualizado em 10 de novembro de 2026.
+
+## Evolução E2 e E3
+
+- Cadastro e login reais com Better Auth, cookie de sessão httpOnly e PostgreSQL.
+- `GET /api/me` cria o workspace de uma nova conta e identifica seu usuário autenticado.
+- `GET/POST /api/bots` e `GET/PUT /api/bots/:id` filtram por `conta_id` e validam a definição no servidor.
+- O painel lista os bots da conta. O estúdio abre um bot salvo e cria uma versão imutável em cada salvamento.
+- Migração: `pnpm db:migrate` aplica o schema inicial, as tabelas Better Auth e o vínculo do usuário à conta.
+- Catálogo, checkout e WhatsApp continuam simulados. E4 (conversa persistida) ainda não foi implementado.
 
 ## Objetivo do produto
 
@@ -44,15 +53,15 @@ Em caso de conflito, preserve os invariantes de `AGENTS.md` e confirme a intenç
 
 Tudo abaixo roda só no navegador, sem backend, e está marcado na interface como demonstração:
 
-- `/` landing animada e `/entrar` login mockado (qualquer e-mail entra; sessão em `localStorage`). Rotas do app ficam em `/app/*` com guarda de sessão.
+- `/` landing animada e `/entrar` com cadastro/login real desde E2. Rotas do app ficam em `/app/*` com guarda de sessão.
 - Estúdio: arraste de nós corrigido (antes o React Flow controlado não tinha `onNodesChange`), arrastar da paleta para o canvas, tecla Delete, snap na grade, auto-layout em camadas ("Organizar"), badges de início/erro por nó e **simulador de conversa** que usa `@syncra/engine` de verdade; nós `ia` recebem resposta simulada.
 - Marketplace com 10 fluxos mockados (`apps/web/src/data/marketplace.ts`), todos válidos no validador V-01..V-08, com busca, filtros, prévia do grafo e checkout sandbox simulado que carrega o fluxo no estúdio.
 - Integrações: assistente simulado de WhatsApp/Meta (cadastro incorporado, número, webhook, verificação) e painel conectado com prévia em telefone. O token digitado nunca é salvo — só os 4 últimos caracteres.
 - Ícones SVG próprios em `components/Icon.tsx` (sem dependência nova).
 
-Nada disso substitui E2 (auth real), E7 (catálogo na API) ou a integração real com a Meta; quando esses chegarem, troque os stores `sessao`, `integracoes` e os dados de `data/marketplace.ts` pelas chamadas à API.
+As demonstrações de catálogo, checkout e WhatsApp ainda precisam ser substituídas pelas chamadas à API nas etapas futuras.
 
-O código de backend ainda representa o esqueleto E1. Autenticação, persistência dos bots, edição completa do grafo, conversa real, catálogo funcional, assinatura e integrações de IA ainda não estão concluídos.
+O backend agora cobre E2 e a persistência de E3. Conversa real, catálogo funcional, assinatura e integrações de IA ainda não estão concluídos.
 
 ## Estado validado no handoff
 

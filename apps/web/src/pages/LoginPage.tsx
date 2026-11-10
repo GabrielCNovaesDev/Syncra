@@ -6,6 +6,8 @@ import { useSessaoStore } from "../store/sessao";
 export function LoginPage() {
   const usuario = useSessaoStore((s) => s.usuario);
   const entrar = useSessaoStore((s) => s.entrar);
+  const criar = useSessaoStore((s) => s.criar);
+  const carregandoSessao = useSessaoStore((s) => s.carregando);
   const navigate = useNavigate();
   const location = useLocation();
   const destino = (location.state as { de?: string } | null)?.de ?? "/app";
@@ -15,20 +17,23 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
-  if (usuario && !carregando) return <Navigate to={destino} replace />;
+  if (usuario && !carregandoSessao) return <Navigate to={destino} replace />;
 
-  function concluir(emailUsado: string) {
-    setCarregando(true);
-    window.setTimeout(() => {
-      entrar(emailUsado, modo === "criar" ? nome : undefined);
-      navigate(destino, { replace: true });
-    }, 850);
-  }
-
-  function aoEnviar(evento: FormEvent) {
+  async function aoEnviar(evento: FormEvent) {
     evento.preventDefault();
-    concluir(email);
+    setErro(null);
+    setCarregando(true);
+    try {
+      if (modo === "criar") await criar(nome.trim(), email.trim(), senha);
+      else await entrar(email.trim(), senha);
+      navigate(destino, { replace: true });
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : "Não foi possível entrar.");
+    } finally {
+      setCarregando(false);
+    }
   }
 
   return (
@@ -51,33 +56,14 @@ export function LoginPage() {
               : "Leva menos de um minuto. Sem cartão de crédito."}
           </p>
 
-          <div className="demo-notice">
-            <Icon name="info" size={14} />
-            <span>
-              <strong>Modo demonstração:</strong> qualquer e-mail e senha funcionam. Nada é enviado a
-              um servidor.
-            </span>
-          </div>
-
-          <button
-            type="button"
-            className="button button-social block"
-            disabled={carregando}
-            onClick={() => concluir("visitante@syncra.bot")}
-          >
-            <Icon name="zap" size={15} /> Entrar como visitante
-          </button>
-
-          <div className="divider">
-            <span>ou com e-mail</span>
-          </div>
-
           <form onSubmit={aoEnviar} className="login-fields">
+            {erro ? <div className="import-error" role="alert">{erro}</div> : null}
             {modo === "criar" ? (
               <label className="field">
                 Seu nome
                 <input
                   value={nome}
+                  required
                   autoComplete="name"
                   placeholder="Como devemos te chamar?"
                   onChange={(e) => setNome(e.target.value)}
@@ -91,6 +77,7 @@ export function LoginPage() {
                 <input
                   type="email"
                   value={email}
+                  required
                   autoComplete="email"
                   placeholder="voce@empresa.com"
                   onChange={(e) => setEmail(e.target.value)}
@@ -100,13 +87,14 @@ export function LoginPage() {
             <label className="field">
               <span className="field-label-row">
                 Senha
-                {modo === "entrar" ? <a href="#" onClick={(e) => e.preventDefault()}>Esqueceu?</a> : null}
               </span>
               <div className="input-icon">
                 <Icon name="lock" size={15} />
                 <input
                   type="password"
                   value={senha}
+                  required
+                  minLength={modo === "criar" ? 8 : undefined}
                   autoComplete={modo === "entrar" ? "current-password" : "new-password"}
                   placeholder="••••••••"
                   onChange={(e) => setSenha(e.target.value)}

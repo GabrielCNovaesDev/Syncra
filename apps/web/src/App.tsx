@@ -42,6 +42,8 @@ function usePreCarregarPaginas() {
 
 export function App() {
   usePreCarregarPaginas();
+  const inicializar = useSessaoStore((s) => s.inicializar);
+  useEffect(() => { void inicializar().catch(console.error); }, [inicializar]);
   return (
     <>
       <Routes>
@@ -64,7 +66,9 @@ export function App() {
 
 function RotaProtegida() {
   const usuario = useSessaoStore((s) => s.usuario);
+  const carregando = useSessaoStore((s) => s.carregando);
   const location = useLocation();
+  if (carregando) return <div className="page">Carregando sua conta…</div>;
   if (!usuario) return <Navigate to="/entrar" replace state={{ de: location.pathname }} />;
   return <AppShell />;
 }
@@ -104,8 +108,8 @@ function AppShell() {
     return () => document.removeEventListener("mousedown", aoClicarFora);
   }, []);
 
-  function aoSair() {
-    sair();
+  async function aoSair() {
+    await sair();
     navigate("/", { replace: true });
   }
 
@@ -125,7 +129,7 @@ function AppShell() {
           <span className="workspace-avatar">{iniciais(usuario.nome)}</span>
           <span>
             <strong>{usuario.empresa}</strong>
-            <small>Plano demonstração</small>
+            <small>Workspace em piloto</small>
           </span>
           <Icon name="chevronDown" size={14} className="workspace-chevron" />
         </div>
@@ -149,7 +153,7 @@ function AppShell() {
               <Icon name="sparkles" size={18} />
             </span>
             <strong>Do fluxo à conversa</strong>
-            <p>Teste seu bot no estúdio e conecte ao WhatsApp em minutos.</p>
+            <p>Teste seu bot no estúdio e explore a prévia das integrações.</p>
           </div>
           <div className="sidebar-profile" ref={menuRef}>
             <button type="button" className="profile-button" onClick={() => setMenuAberto((v) => !v)}>
@@ -176,9 +180,6 @@ function AppShell() {
             {usuario.empresa} <span>/</span> {TITULOS[location.pathname] ?? "Syncra Bot"}
           </span>
           <div className="topbar-right">
-            <span className="topbar-status">
-              <i /> Modo demonstração
-            </span>
             <button type="button" className="topbar-logout" onClick={aoSair} aria-label="Sair">
               <Icon name="logout" size={16} />
             </button>
