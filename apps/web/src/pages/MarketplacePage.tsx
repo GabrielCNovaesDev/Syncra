@@ -16,6 +16,7 @@ import {
   type ItemMarketplace,
 } from "../data/marketplace";
 import { cores, useStudioStore } from "../store/studio";
+import { useBotsStore } from "../store/bots";
 import { toast } from "../store/toast";
 
 type Ordem = "populares" | "avaliados" | "novos";
@@ -347,9 +348,11 @@ function DetalheItem({
 }) {
   const navigate = useNavigate();
   const carregarDefinicao = useStudioStore((s) => s.carregarDefinicao);
+  const novoBot = useBotsStore((s) => s.novo);
   const [etapa, setEtapa] = useState<EtapaCompra>("detalhe");
 
   function abrirNoEstudio() {
+    novoBot();
     carregarDefinicao(item.definicao);
     toast.sucesso("Fluxo carregado no estúdio", `“${item.nome}” está pronto para personalizar.`);
     navigate("/app/studio");

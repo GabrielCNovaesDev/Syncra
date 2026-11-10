@@ -30,6 +30,11 @@ pnpm dev
 - Web: http://localhost:5173
 - API: http://localhost:3001/health
 
+Crie um segredo local com pelo menos 32 caracteres em `apps/api/.env` antes de iniciar a API.
+O login usa Better Auth; cadastro e sessão passam por `/api/auth/*`. Bots da conta são
+listados e versionados em `/api/bots`. Cada salvamento válido no estúdio cria uma nova
+versão imutável no PostgreSQL. Catálogo, checkout e WhatsApp ainda são demonstrações.
+
 ## Monorepo
 
 - `packages/shared` — Zod + validador V-01..V-08

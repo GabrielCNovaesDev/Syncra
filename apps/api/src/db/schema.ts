@@ -22,6 +22,7 @@ export const contas = pgTable("contas", {
 
 export const usuarios = pgTable("usuarios", {
   id: uuid("id").primaryKey(),
+  authUserId: text("auth_user_id").unique(),
   contaId: uuid("conta_id")
     .notNull()
     .references(() => contas.id),

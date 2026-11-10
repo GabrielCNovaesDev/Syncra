@@ -1,75 +1,88 @@
+import { createAuthClient } from "better-auth/react";
 import { create } from "zustand";
+import { useIntegracoesStore } from "./integracoes";
 
-/**
- * Sessão de demonstração. Não há autenticação real aqui (E2 ainda não foi
- * entregue): qualquer e-mail entra e nada é enviado para fora do navegador.
- */
-export type UsuarioDemo = {
+export const baseURL = import.meta.env.VITE_API_URL || window.location.origin;
+export const authClient = createAuthClient({
+  baseURL,
+  fetchOptions: { credentials: "include" },
+});
+
+export type Usuario = {
+  id: string;
+  contaId: string;
   nome: string;
   email: string;
   empresa: string;
 };
 
-const CHAVE_SESSAO = "syncra.sessao.demo.v1";
-
-function carregar(): UsuarioDemo | null {
-  try {
-    const bruto = localStorage.getItem(CHAVE_SESSAO);
-    return bruto ? (JSON.parse(bruto) as UsuarioDemo) : null;
-  } catch {
-    return null;
-  }
-}
-
-function nomeAPartirDoEmail(email: string): string {
-  const local = email.split("@")[0] ?? "";
-  const partes = local.split(/[._-]+/).filter(Boolean);
-  if (partes.length === 0) return "Visitante";
-  return partes
-    .slice(0, 2)
-    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-    .join(" ");
-}
-
 type SessaoState = {
-  usuario: UsuarioDemo | null;
-  entrar: (email: string, nome?: string) => void;
-  sair: () => void;
+  usuario: Usuario | null;
+  carregando: boolean;
+  inicializar: () => Promise<void>;
+  entrar: (email: string, senha: string) => Promise<void>;
+  criar: (nome: string, email: string, senha: string) => Promise<void>;
+  sair: () => Promise<void>;
 };
 
+async function buscarUsuario(): Promise<Usuario | null> {
+  const resposta = await fetch(`${baseURL}/api/me`, { credentials: "include" });
+  if (resposta.status === 401) return null;
+  if (!resposta.ok) throw new Error("Não foi possível carregar sua conta.");
+  const dados = await resposta.json() as {
+    usuario: { id: string; nome: string; email: string };
+    conta: { id: string; nome: string };
+  };
+  return {
+    id: dados.usuario.id,
+    contaId: dados.conta.id,
+    nome: dados.usuario.nome,
+    email: dados.usuario.email,
+    empresa: dados.conta.nome,
+  };
+}
+
+async function limparDadosDaSessaoAnterior() {
+  try {
+    localStorage.removeItem("syncra.sessao.demo.v1");
+    localStorage.removeItem("syncra.studio.rascunho.v1");
+    localStorage.removeItem("syncra.marketplace.adquiridos.v1");
+  } catch { /* O navegador pode bloquear armazenamento local. */ }
+  const [{ useBotsStore }, { useStudioStore }] = await Promise.all([
+    import("./bots"), import("./studio"),
+  ]);
+  useBotsStore.getState().limpar();
+  useStudioStore.getState().restaurarExemplo();
+  useIntegracoesStore.getState().desconectarWhatsApp();
+}
+
 export const useSessaoStore = create<SessaoState>((set) => ({
-  usuario: carregar(),
-  entrar: (email, nome) => {
-    const emailLimpo = email.trim() || "visitante@syncra.bot";
-    const usuario: UsuarioDemo = {
-      email: emailLimpo,
-      nome: nome?.trim() || nomeAPartirDoEmail(emailLimpo),
-      empresa: "Workspace de demonstração",
-    };
-    try {
-      localStorage.setItem(CHAVE_SESSAO, JSON.stringify(usuario));
-    } catch {
-      // segue apenas em memória.
-    }
-    set({ usuario });
+  usuario: null,
+  carregando: true,
+  inicializar: async () => {
+    try { set({ usuario: await buscarUsuario() }); }
+    finally { set({ carregando: false }); }
   },
-  sair: () => {
-    try {
-      localStorage.removeItem(CHAVE_SESSAO);
-    } catch {
-      // nada a limpar.
-    }
+  entrar: async (email, senha) => {
+    const { error } = await authClient.signIn.email({ email, password: senha });
+    if (error) throw new Error(error.message || "E-mail ou senha inválidos.");
+    await limparDadosDaSessaoAnterior();
+    set({ usuario: await buscarUsuario(), carregando: false });
+  },
+  criar: async (nome, email, senha) => {
+    const { error } = await authClient.signUp.email({ name: nome, email, password: senha });
+    if (error) throw new Error(error.message || "Não foi possível criar a conta.");
+    await limparDadosDaSessaoAnterior();
+    set({ usuario: await buscarUsuario(), carregando: false });
+  },
+  sair: async () => {
+    await authClient.signOut();
+    await limparDadosDaSessaoAnterior();
     set({ usuario: null });
   },
 }));
 
 export function iniciais(nome: string): string {
-  return (
-    nome
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((p) => p.charAt(0).toUpperCase())
-      .join("") || "S"
-  );
+  return nome.split(" ").filter(Boolean).slice(0, 2)
+    .map((parte) => parte.charAt(0).toUpperCase()).join("") || "S";
 }
