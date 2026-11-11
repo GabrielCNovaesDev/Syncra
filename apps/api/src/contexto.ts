@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
+import type { IncomingHttpHeaders } from "node:http";
 import { eq } from "drizzle-orm";
 import { fromNodeHeaders } from "better-auth/node";
-import type { Request } from "express";
 import { auth } from "./auth.js";
 import { db } from "./db/client.js";
 import { contas, usuarios } from "./db/schema.js";
 
-export async function contextoDaConta(req: Request) {
+export async function contextoDaConta(req: { headers: IncomingHttpHeaders }) {
   const sessao = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
   if (!sessao) return null;
 

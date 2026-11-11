@@ -17,8 +17,10 @@ import "@xyflow/react/dist/style.css";
 import type { ChangeEvent, CSSProperties, DragEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { ModeloLogico, NoBot, TipoNo, TipoVariavel, VariavelBot } from "@syncra/shared";
+import { diagnosticarFluxo, type ModeloLogico, type NoBot, type TipoNo, type TipoVariavel, type VariavelBot } from "@syncra/shared";
 import { FlowNode, type FlowNodeData } from "../components/FlowNode";
+import { ConversaReal } from "../components/ConversaReal";
+import { HistoricoVersoes } from "../components/HistoricoVersoes";
 import { Icon } from "../components/Icon";
 import { SimuladorChat } from "../components/SimuladorChat";
 import {
@@ -32,6 +34,7 @@ import {
 } from "../store/studio";
 import { toast } from "../store/toast";
 import { useBotsStore } from "../store/bots";
+import { useSessaoStore } from "../store/sessao";
 
 const nodeTypes: NodeTypes = { syncra: FlowNode as unknown as NodeTypes[string] };
 
@@ -58,6 +61,7 @@ function Estudio() {
   const abrirBot = useBotsStore((s) => s.abrir);
   const novoBot = useBotsStore((s) => s.novo);
   const salvarBot = useBotsStore((s) => s.salvar);
+  const contaId = useSessaoStore((s) => s.usuario?.contaId);
   const definicao = useStudioStore((s) => s.definicao);
   const valida = useStudioStore((s) => s.valida);
   const erros = useStudioStore((s) => s.erros);
@@ -82,6 +86,7 @@ function Estudio() {
   const { screenToFlowPosition, fitView } = useReactFlow();
   const inputArquivoRef = useRef<HTMLInputElement>(null);
   const [simulando, setSimulando] = useState(false);
+  const [historicoAberto, setHistoricoAberto] = useState(false);
   const [noAtivo, setNoAtivo] = useState<string | null>(null);
   const [arrastandoSobre, setArrastandoSobre] = useState(false);
   const alterado = !ativoId || JSON.stringify(definicao) !== ultimaSalva;
@@ -112,6 +117,12 @@ function Estudio() {
     }
     return mapa;
   }, [erros]);
+  const diagnosticos = useMemo(() => diagnosticarFluxo(definicao), [definicao]);
+  const avisosPorNo = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const aviso of diagnosticos) mapa.set(aviso.no_id, (mapa.get(aviso.no_id) ?? 0) + 1);
+    return mapa;
+  }, [diagnosticos]);
 
   const nodesDoStore = useMemo<Node[]>(
     () =>
@@ -126,11 +137,12 @@ function Estudio() {
           no,
           inicial: definicao.no_inicial === no.id,
           erros: errosPorNo.get(no.id) ?? 0,
+          avisos: avisosPorNo.get(no.id) ?? 0,
           ativo: noAtivo === no.id,
         } satisfies FlowNodeData,
         selected: selecao?.tipo === "no" && selecao.id === no.id,
       })),
-    [definicao, selecao, errosPorNo, noAtivo],
+    [definicao, selecao, errosPorNo, avisosPorNo, noAtivo],
   );
 
   // O store é a fonte de verdade; o estado local só existe para o arraste fluir
@@ -232,6 +244,9 @@ function Estudio() {
           <p>Arraste etapas para o mapa, conecte caminhos e teste a conversa em tempo real.</p>
         </div>
         <div className="studio-actions">
+          {ativoId ? <button type="button" className="button button-ghost" onClick={() => setHistoricoAberto(true)}>
+            Histórico
+          </button> : null}
           <button type="button" className="button button-ghost" onClick={() => { novoBot(); setParametros({}, { replace: true }); }}>
             <Icon name="plus" size={15} /> Novo
           </button>
@@ -268,6 +283,8 @@ function Estudio() {
           </button>
         </div>
       </div>
+
+      {historicoAberto && ativoId ? <HistoricoVersoes botId={ativoId} alterado={alterado} aoFechar={() => setHistoricoAberto(false)} /> : null}
 
       {erroImportacao ? (
         <div className="import-error">
@@ -404,7 +421,18 @@ function Estudio() {
                 </div>
               ) : null}
             </div>
-            {simulando ? (
+            {simulando && ativoId && contaId && !alterado ? (
+              <ConversaReal
+                botId={ativoId}
+                contaId={contaId}
+                nome={definicao.nome}
+                aoMudarNoAtivo={setNoAtivo}
+                aoFechar={() => {
+                  setSimulando(false);
+                  window.setTimeout(() => fitView({ duration: 400, padding: 0.2 }), 60);
+                }}
+              />
+            ) : simulando ? (
               <SimuladorChat
                 definicao={definicao}
                 valida={valida}
@@ -471,6 +499,12 @@ function Estudio() {
                 ))}
               </ul>
             )}
+            {diagnosticos.length > 0 ? <div className="diagnostics-list">
+              <strong>Diagnósticos do caminho</strong>
+              <ul>{diagnosticos.map((aviso) => <li key={`${aviso.tipo}-${aviso.no_id}`}>
+                <button type="button" onClick={() => selecionarNo(aviso.no_id)}>{aviso.mensagem}</button>
+              </li>)}</ul>
+            </div> : null}
           </div>
         </aside>
       </div>

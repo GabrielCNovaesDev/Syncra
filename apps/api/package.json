@@ -11,6 +11,7 @@
     "db:seed": "tsx src/db/seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@syncra/engine": "workspace:*",
     "@syncra/shared": "workspace:*",
     "better-auth": "1.7.20",
@@ -20,6 +21,7 @@
     "express": "^4.21.2",
     "pg": "^8.23.1",
     "postgres": "^3.4.5",
+    "socket.io": "^4.8.4",
     "uuid": "^11.0.5"
   },
   "devDependencies": {

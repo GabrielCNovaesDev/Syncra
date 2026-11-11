@@ -67,6 +67,36 @@ function alcancaveis(inicio: string, saidas: Map<string, string[]>): Set<string>
   return visto;
 }
 
+export type DiagnosticoFluxo = {
+  tipo: "inalcancavel" | "sem_saida";
+  no_id: string;
+  mensagem: string;
+};
+
+export function diagnosticarFluxo(definicao: Definicao): DiagnosticoFluxo[] {
+  const nos = mapaNos(definicao);
+  const saidas = saidasPorNo(definicao.conexoes.filter((c) => nos.has(c.de) && nos.has(c.para)));
+  const visiveis = nos.has(definicao.no_inicial)
+    ? alcancaveis(definicao.no_inicial, saidas) : new Set<string>();
+  const entradas = new Map<string, string[]>();
+  for (const [de, proximos] of saidas) {
+    for (const para of proximos) entradas.set(para, [...(entradas.get(para) ?? []), de]);
+  }
+  const finais = definicao.nos.filter((no) => no.tipo === "encerramento").map((no) => no.id);
+  const chegamAoFim = new Set(finais.flatMap((id) => [...alcancaveis(id, entradas)]));
+  return definicao.nos.flatMap((no): DiagnosticoFluxo[] => {
+    if (!visiveis.has(no.id)) return [{
+      tipo: "inalcancavel", no_id: no.id,
+      mensagem: `Etapa ${no.id} nunca é alcançada a partir do início.`,
+    }];
+    if (no.tipo !== "encerramento" && !chegamAoFim.has(no.id)) return [{
+      tipo: "sem_saida", no_id: no.id,
+      mensagem: `O caminho da etapa ${no.id} não chega a um encerramento.`,
+    }];
+    return [];
+  });
+}
+
 function temCiclo(nosIds: string[], saidas: Map<string, string[]>): boolean {
   const BRANCO = 0;
   const CINZA = 1;

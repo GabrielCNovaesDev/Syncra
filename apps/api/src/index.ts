@@ -1,10 +1,13 @@
 import cors from "cors";
 import express from "express";
+import { createServer } from "node:http";
 import { toNodeHandler } from "better-auth/node";
 import { validarDefinicao } from "@syncra/shared";
 import { auth } from "./auth.js";
 import { botsRouter } from "./bots.js";
 import { contextoDaConta } from "./contexto.js";
+import { conversasRouter } from "./conversas.js";
+import { conectarSocket } from "./socket.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
@@ -40,7 +43,10 @@ app.get("/api/me", (req, res) => {
   });
 });
 app.use("/api/bots", botsRouter);
+app.use("/api/conversas", conversasRouter);
 
-app.listen(port, () => {
+const httpServer = createServer(app);
+conectarSocket(httpServer, origin);
+httpServer.listen(port, () => {
   console.log(`Syncra API em http://localhost:${port}`);
 });
