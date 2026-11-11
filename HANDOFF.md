@@ -9,7 +9,15 @@ Atualizado em 10 de novembro de 2026.
 - `GET/POST /api/bots` e `GET/PUT /api/bots/:id` filtram por `conta_id` e validam a definição no servidor.
 - O painel lista os bots da conta. O estúdio abre um bot salvo e cria uma versão imutável em cada salvamento.
 - Migração: `pnpm db:migrate` aplica o schema inicial, as tabelas Better Auth e o vínculo do usuário à conta.
-- Catálogo, checkout e WhatsApp continuam simulados. E4 (conversa persistida) ainda não foi implementado.
+- Catálogo, checkout e WhatsApp continuam simulados.
+
+## Evolução E4
+
+- Conversas web são persistidas em `conversas` e `mensagens` e presas a `bot_versao_id`.
+- O estúdio usa Socket.IO para conversar com um bot salvo. Nós de IA recebem resposta em streaming pela API, com a chave apenas no backend.
+- Sem `ANTHROPIC_API_KEY`, os nós determinísticos funcionam; a chamada externa de IA permanece sem validação real neste ambiente.
+- O histórico permite comparar definições e restaurar uma versão antiga como nova versão, preservando as anteriores.
+- O estúdio marca etapas inalcançáveis e caminhos que não chegam ao encerramento.
 
 ## Objetivo do produto
 
@@ -61,7 +69,7 @@ Tudo abaixo roda só no navegador, sem backend, e está marcado na interface com
 
 As demonstrações de catálogo, checkout e WhatsApp ainda precisam ser substituídas pelas chamadas à API nas etapas futuras.
 
-O backend agora cobre E2 e a persistência de E3. Conversa real, catálogo funcional, assinatura e integrações de IA ainda não estão concluídos.
+O backend cobre E2, E3 e a conversa web de E4. Catálogo funcional, assinatura e WhatsApp ainda não estão concluídos. A chamada externa de IA depende de uma chave Anthropic.
 
 ## Estado validado no handoff
 
@@ -91,7 +99,7 @@ O repositório fixa `pnpm@9.15.0`. Prefira comandos com `corepack pnpm` para evi
 2. Suba web e API em terminais separados com `corepack pnpm --filter @syncra/web dev` e `corepack pnpm --filter @syncra/api dev`.
 3. Inspecione a interface renderizada em desktop e mobile antes de alterar o design.
 4. Mantenha nomes técnicos existentes (`@syncra/*`, `syncra-api`, nomes de banco e imports) até existir uma necessidade explícita de migração; `Syncra Bot` é a marca visível.
-5. Para a evolução funcional, respeite a ordem e os critérios de aceite de `docs/04-plano-de-implementacao.md`. O próximo marco arquitetural importante continua sendo E4: um bot montado no editor conversar pela interface web.
+5. Para a evolução funcional, respeite a ordem e os critérios de aceite de `docs/04-plano-de-implementacao.md`.
 6. Antes de cada commit, execute os testes dos pacotes afetados e o build do frontend quando houver mudança visual.
 
 ## Invariantes que não devem ser quebrados

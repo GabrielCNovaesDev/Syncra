@@ -15,10 +15,11 @@ type BotsState = {
   abrir: (id: string) => Promise<void>;
   novo: () => void;
   salvar: () => Promise<number>;
+  restaurar: (id: string, numero: number) => Promise<number>;
   limpar: () => void;
 };
 
-async function obterJSON<T>(rota: string, init?: RequestInit): Promise<T> {
+export async function obterJSON<T>(rota: string, init?: RequestInit): Promise<T> {
   const resposta = await fetch(`${baseURL}${rota}`, {
     ...init,
     credentials: "include",
@@ -67,6 +68,15 @@ export const useBotsStore = create<BotsState>((set, get) => ({
         { method: id ? "PUT" : "POST", body: JSON.stringify(validacao.definicao) },
       );
       set({ ativoId: salvo.id, versao: salvo.versao, ultimaSalva: JSON.stringify(definicao) });
+      await get().carregarLista();
+      return salvo.versao;
+    } finally { set({ carregando: false }); }
+  },
+  restaurar: async (id, numero) => {
+    set({ carregando: true });
+    try {
+      const salvo = await obterJSON<{ versao: number }>(`/api/bots/${id}/versoes/${numero}/restaurar`, { method: "POST" });
+      await get().abrir(id);
       await get().carregarLista();
       return salvo.versao;
     } finally { set({ carregando: false }); }

@@ -22,6 +22,20 @@ function idDaRota(req: Request): string | null {
   return typeof id === "string" && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id) ? id : null;
 }
 
+function numeroDaRota(req: Request): number | null {
+  const valor = req.params.numero;
+  if (typeof valor !== "string" || !/^[1-9]\d*$/.test(valor)) return null;
+  const numero = Number(valor);
+  return Number.isSafeInteger(numero) ? numero : null;
+}
+
+async function botDaConta(id: string, contaId: string) {
+  const [bot] = await db.select().from(bots).where(and(
+    eq(bots.id, id), eq(bots.contaId, contaId), isNull(bots.excluidoEm),
+  )).limit(1);
+  return bot;
+}
+
 botsRouter.get("/", rota(async (req, res) => {
   const contexto = await contextoDaConta(req);
   if (!contexto) { res.sendStatus(401); return; }
@@ -67,6 +81,60 @@ botsRouter.get("/:id", rota(async (req, res) => {
     .where(eq(botVersoes.botId, bot.id)).orderBy(desc(botVersoes.numero)).limit(1);
   if (!versao) { res.sendStatus(404); return; }
   res.json({ id: bot.id, nome: bot.nome, versao: versao.numero, definicao: versao.definicao });
+}));
+
+botsRouter.get("/:id/versoes", rota(async (req, res) => {
+  const contexto = await contextoDaConta(req);
+  if (!contexto) { res.sendStatus(401); return; }
+  const id = idDaRota(req);
+  if (!id || !await botDaConta(id, contexto.conta.id)) { res.sendStatus(404); return; }
+  const versoes = await db.select({ numero: botVersoes.numero, criadoEm: botVersoes.criadoEm })
+    .from(botVersoes).where(eq(botVersoes.botId, id)).orderBy(desc(botVersoes.numero));
+  res.json({ versoes });
+}));
+
+botsRouter.get("/:id/versoes/:numero", rota(async (req, res) => {
+  const contexto = await contextoDaConta(req);
+  if (!contexto) { res.sendStatus(401); return; }
+  const id = idDaRota(req);
+  const numero = numeroDaRota(req);
+  if (!id || !numero || !await botDaConta(id, contexto.conta.id)) { res.sendStatus(404); return; }
+  const [versao] = await db.select().from(botVersoes).where(and(
+    eq(botVersoes.botId, id), eq(botVersoes.numero, numero),
+  )).limit(1);
+  if (!versao) { res.sendStatus(404); return; }
+  res.json({ numero: versao.numero, criadoEm: versao.criadoEm, definicao: versao.definicao });
+}));
+
+botsRouter.post("/:id/versoes/:numero/restaurar", rota(async (req, res) => {
+  const contexto = await contextoDaConta(req);
+  if (!contexto) { res.sendStatus(401); return; }
+  const id = idDaRota(req);
+  const numeroOrigem = numeroDaRota(req);
+  if (!id || !numeroOrigem) { res.sendStatus(404); return; }
+  const restaurada = await db.transaction(async (tx) => {
+    const [bot] = await tx.select().from(bots).where(and(
+      eq(bots.id, id), eq(bots.contaId, contexto.conta.id), isNull(bots.excluidoEm),
+    )).for("update").limit(1);
+    if (!bot) return null;
+    const [origem] = await tx.select().from(botVersoes).where(and(
+      eq(botVersoes.botId, id), eq(botVersoes.numero, numeroOrigem),
+    )).limit(1);
+    if (!origem) return null;
+    const validacao = validarDefinicao(origem.definicao);
+    if (!validacao.ok) throw new Error("A versão de origem é inválida.");
+    const [ultima] = await tx.select({ numero: botVersoes.numero }).from(botVersoes)
+      .where(eq(botVersoes.botId, id)).orderBy(desc(botVersoes.numero)).limit(1);
+    const numero = (ultima?.numero ?? 0) + 1;
+    await tx.insert(botVersoes).values({
+      id: randomUUID(), botId: id, numero, definicao: validacao.definicao,
+      modoCriacao: origem.modoCriacao, criadoEm: new Date(),
+    });
+    await tx.update(bots).set({ nome: validacao.definicao.nome }).where(eq(bots.id, id));
+    return { id, versao: numero, origem: numeroOrigem, definicao: validacao.definicao };
+  });
+  if (!restaurada) { res.sendStatus(404); return; }
+  res.status(201).json(restaurada);
 }));
 
 botsRouter.put("/:id", rota(async (req, res) => {

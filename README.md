@@ -35,6 +35,13 @@ O login usa Better Auth; cadastro e sessão passam por `/api/auth/*`. Bots da co
 listados e versionados em `/api/bots`. Cada salvamento válido no estúdio cria uma nova
 versão imutável no PostgreSQL. Catálogo, checkout e WhatsApp ainda são demonstrações.
 
+Em bots salvos, o teste de conversa no estúdio usa Socket.IO e grava mensagens no banco.
+A conversa continua vinculada à versão com que começou. Para respostas de nós `ia`,
+configure `ANTHROPIC_API_KEY` e os modelos em `apps/api/.env`; sem chave, os nós
+determinísticos continuam funcionando.
+O botão **Histórico** compara versões e restaura uma definição antiga criando uma nova versão.
+O painel de validação destaca etapas inalcançáveis e caminhos sem encerramento.
+
 ## Monorepo
 
 - `packages/shared` — Zod + validador V-01..V-08

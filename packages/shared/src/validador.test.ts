@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { definicaoExemploValida, validarDefinicao } from "./validador.js";
+import { definicaoExemploValida, diagnosticarFluxo, validarDefinicao } from "./validador.js";
+
+describe("diagnosticarFluxo", () => {
+  it("aponta etapas inalcançáveis e caminhos sem encerramento", () => {
+    const def = definicaoExemploValida();
+    def.nos.push({ id: "orfao", tipo: "mensagem", texto: "isolado" });
+    def.nos.push({ id: "beco", tipo: "mensagem", texto: "sem saída" });
+    def.conexoes.push({ de: "no_boas_vindas", para: "beco", condicao: null });
+    expect(diagnosticarFluxo(def)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ tipo: "inalcancavel", no_id: "orfao" }),
+      expect.objectContaining({ tipo: "sem_saida", no_id: "beco" }),
+    ]));
+    expect(diagnosticarFluxo(def).some((d) => d.no_id === "no_boas_vindas")).toBe(false);
+  });
+});
 
 describe("validarDefinicao", () => {
   it("aceita o exemplo canônico do contrato de dados", () => {

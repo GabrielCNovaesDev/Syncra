@@ -8,6 +8,7 @@ export type FlowNodeData = {
   no: NoBot;
   inicial: boolean;
   erros: number;
+  avisos?: number;
   ativo: boolean;
 };
 
@@ -17,12 +18,13 @@ type FlowNodeProps = {
 };
 
 export function FlowNode({ data, selected }: FlowNodeProps) {
-  const { no, inicial, erros, ativo } = data;
+  const { no, inicial, erros, avisos = 0, ativo } = data;
   const estilo = { "--node-color": cores[no.tipo] } as CSSProperties;
   const classes = ["flow-node"];
   if (selected) classes.push("selected");
   if (ativo) classes.push("active-run");
   if (erros > 0) classes.push("has-error");
+  else if (avisos > 0) classes.push("has-warning");
 
   return (
     <div className={classes.join(" ")} style={estilo}>
@@ -37,8 +39,8 @@ export function FlowNode({ data, selected }: FlowNodeProps) {
           <Icon name={icones[no.tipo]} size={13} strokeWidth={2} />
         </span>
         <span>{rotulos[no.tipo]}</span>
-        {erros > 0 ? (
-          <span className="flow-node-error" title={`${erros} pendência(s) neste nó`}>
+        {erros > 0 || avisos > 0 ? (
+          <span className={erros > 0 ? "flow-node-error" : "flow-node-error flow-node-warning"} title={erros > 0 ? `${erros} pendência(s) neste nó` : `${avisos} alerta(s) neste nó`}>
             <Icon name="alert" size={11} strokeWidth={2.2} />
           </span>
         ) : (
